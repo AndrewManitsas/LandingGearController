@@ -11,6 +11,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 
+# Task 2.1: Attitude Estimator Node
 add_executable(attitude_estimator src/attitude_estimator.cpp)
 ament_target_dependencies(attitude_estimator
   rclcpp
@@ -19,8 +20,17 @@ ament_target_dependencies(attitude_estimator
   std_msgs
 )
 
+# Task 2.2: Stabilator PID Controller Node
+add_executable(stabilator_controller src/stabilator_controller.cpp)
+ament_target_dependencies(stabilator_controller
+  rclcpp
+  geometry_msgs
+  std_msgs
+)
+
 install(TARGETS
   attitude_estimator
+  stabilator_controller
   DESTINATION lib/${PROJECT_NAME}
 )
 
