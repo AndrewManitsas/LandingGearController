@@ -1,8 +1,8 @@
 # Intelligent Autonomous UAV Landing Gear System: Simulation Proof of Concept
 
-An autonomous landing decision and active attitude stabilization system for Unmanned Aerial Vehicles (UAVs). This project implements a multi-sensor fusion and Edge AI pipeline that classifies terminal descent terrain as `SAFE` or `UNSAFE` while actively maintaining perpendicular sensor orientation relative to the ground plane
+An autonomous landing decision and active attitude stabilization system for Unmanned Aerial Vehicles (UAVs). This project implements a multi-sensor fusion and Edge AI pipeline that classifies terminal descent terrain as `SAFE` or `UNSAFE` while actively maintaining stabilized sensor orientation relative to the ground plane.
 
-Originally designed around a three-microcontroller physical architecture (Raspberry Pi Pico 2 W, Raspberry Pi Zero W, and Arduino Uno), this repository contains the **Software-in-the-Loop (SITL) digital twin** developed in ROS 2 and Gazebo.
+Originally conceptualized around a three-microcontroller physical architecture (Raspberry Pi Pico 2 W, Raspberry Pi Zero W, and Arduino Uno), this repository hosts the **Software-in-the-Loop (SITL) digital twin** developed in ROS 2 and Gazebo.
 
 ---
 
@@ -14,7 +14,7 @@ Originally designed around a three-microcontroller physical architecture (Raspbe
   * Andreas Manitsas (`amanitsb@ece.auth.gr`)
   * Maria Vrana (`mvranaa@ece.auth.gr`)
 * **Execution Status:** Software-in-the-Loop (SITL) Proof of Concept
-* **Target Stack:** Ubuntu 24.04 LTS, ROS2, Gazebo, GNU Make
+* **Target Stack:** Ubuntu 24.04 LTS, ROS 2 Jazzy, Gazebo Harmonic, colcon
 
 ---
 
@@ -65,26 +65,23 @@ Detailed mathematical formulations, interface contracts, and task breakdowns are
 ## 4. Repository Layout
 
 ```text
-uav_landing_gear/
-├── Makefile                     # Root GNU build file (replaces CMake/colcon)
-├── README.md                    # Primary repository overview
-├── requirements.txt             # Python dependencies (scikit-learn, numpy, etc.)
+LandingGearController/
+├── config/
+│   └── bridge_config.yaml       # ros_gz_bridge topic mapping
 ├── docs/                        # Modular technical specifications
 │   ├── architecture.md
 │   ├── sensors_and_physics.md
 │   ├── work_breakdown.md
 │   ├── ros_interfaces.md
 │   └── testing_and_validation.md
-├── config/                      # PID gains, sensor noise, and threshold params
-├── launch/                      # System orchestration and Gazebo launch files
-├── models/                      # URDF/Xacro descriptions and sensor plugins
-├── worlds/                      # Gazebo world definitions (Safe / Unsafe testbeds)
+├── models/                      # Airframe URDF and sensor definitions
+│   └── urdf/landing_rig.urdf
 ├── src/
-│   ├── sensing_domain/          # Ingestion & moving-average filtering (Pico equiv.)
-│   ├── intelligence_domain/     # Feature extraction & ML inference (Zero W equiv.)
-│   └── control_domain/          # Complementary filter & pitch PID (Uno equiv.)
-├── bin/                         # Output directory for compiled C++ binaries
-└── build/                       # Intermediate object files (.o)
+│   ├── control_domain/          # Pitch PID, attitude estimator, and gear controller (C++)
+│   ├── sensing_domain/          # Sonar and ToF array pre-processing (C++)
+│   └── intelligence_domain/     # Terrain feature extraction & Edge AI inference (Python)
+├── worlds/                      # Gazebo world definitions (Alpha, Beta, Gamma)
+└── README.md                    # Primary repository overview
 ```
 
 ---
@@ -94,11 +91,13 @@ uav_landing_gear/
 ### 5.1 Build C++ Nodes
 
 ```text
-# Source ROS 2 Humble environment
-source /opt/ros/humble/setup.bash
+# Source ROS 2 Jazzy environment
+source /opt/ros/jazzy/setup.bash
 
-# Compile sensing and control domain executables
-make -j4
+# Build all packages
+cd ~/repos/LandingGearController
+colcon build --symlink-install
+source install/setup.bash
 ```
 
 Compiled binaries are output to `./bin/sensor_hub_node` and `./bin/flight_actuator_node`.
@@ -108,17 +107,20 @@ Compiled binaries are output to `./bin/sensor_hub_node` and `./bin/flight_actuat
 Execute nodes across separate terminal sessions or through launch scripts:
 
 ```text
-# Terminal 1: Launch Gazebo Environment with Rig
-ros2 launch uav_landing_gear simulation.launch.py world:=flat_safe
+# Terminal 1: Simulation World
+gz sim empty.sdf
 
-# Terminal 2: Sensing Domain (Pico 2 W Equivalent)
-./bin/sensor_hub_node
+# Terminal 2: ROS-Gazebo Parameter Bridge
+ros2 run ros_gz_bridge parameter_bridge --ros-args -p config_file:=config/bridge_config.yaml
 
-# Terminal 3: Control Domain (Arduino Uno Equivalent)
-./bin/flight_actuator_node
+# Terminal 3: Attitude Estimator Node
+ros2 run control_domain attitude_estimator
 
-# Terminal 4: Intelligence Domain (RPi Zero W Equivalent)
-python3 src/intelligence_domain/inference_node.py
+# Terminal 4: Stabilator Pitch PID Controller
+ros2 run control_domain stabilator_controller
+
+# Terminal 5: Landing Gear Actuator Controller
+ros2 run control_domain landing_gear_controller
 ```
 
 ### 5.3 Clean Build Artifacts
