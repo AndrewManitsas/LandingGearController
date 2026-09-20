@@ -1,6 +1,6 @@
-# Work Breakdown Structure & Sprint Strategy
+# Work Breakdown Structure
 
-## 1. Plane Board Tasks
+## 1. Project Phases and Tasks
 
 ### Phase 1: Virtual Rig & Sensor Array
 * **Task 1.1: Airframe & Actuator Modeling**
@@ -59,18 +59,3 @@
   * Measure sensing-to-actuation latency and evaluate behavior under sensor dropouts.
 
 ---
-
-## 2. Two-Person Parallel Execution Plan
-
-```text
-       Track A (Person 1: Control & Virtual Rig)                     Track B (Person 2: Terrains, Math & AI)
-      ------------------------------------------                    ---------------------------------------
-Sprint 1: Tasks 1.1 - 1.5 (URDF, Servos, Sensors, Bridge)     |      Tasks 3.1 - 3.3 (Worlds 1, 2, 3)
-                                                              |      Task 4.1 (Feature Math with Synthetic Data)
-                                                              |
-Sprint 2: Tasks 2.1 - 2.4 (C++ Attitude Filter, Pitch PID)    |      Task 3.4 (Automated Data Harvest)
-                                                              |      Task 4.2 (Train Classifier)
-                                                              |
-Sprint 3: Tasks 2.3 & 5.1 (Gear Actuator, Master Launch)      |      Task 4.3 (ROS Inference Node)
-                                                              |      Tasks 5.2 - 5.3 (Closed-Loop Testing & Profiling)
-```
