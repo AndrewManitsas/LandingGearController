@@ -56,7 +56,7 @@ Detailed mathematical formulations, interface contracts, and task breakdowns are
 | :--- | :--- |
 | [**System Architecture**](docs/architecture.md) | Detailed Three-Domain computational model (Sensing, Intelligence, Control), hardware-to-simulation mapping, and safety decoupling principles. |
 | [**Sensors & Physics Modeling**](docs/sensors_and_physics.md) | Overflow-safe complementary filter math, ToF surface normal extraction, acoustic-optical delta ($\Delta d$), and 7D feature vector formulation. |
-| [**Work Breakdown & Sprints**](docs/work_breakdown.md) | Flat 5-phase task hierarchy (formatted for Plane issue tracking), 2-person work division, and the 3-sprint execution roadmap. |
+| [**Work Breakdown Structure**](docs/work_breakdown.md) | Flat 5-phase task hierarchy. |
 | [**ROS 2 Interfaces & FSM**](docs/ros_interfaces.md) | ROS 2 topic names, message structures, publication rates, TF2 transform tree, and actuator finite-state machine. |
 | [**Testing & Validation Plan**](docs/testing_and_validation.md) | Synthetic testbeds (Alpha, Beta, Gamma), closed-loop verification metrics, and latency benchmarking criteria. |
 
