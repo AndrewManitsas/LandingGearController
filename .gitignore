@@ -39,3 +39,11 @@
 
 # debug information files
 *.dwo
+
+# Colcon build artifacts
+build/
+install/
+log/
+
+# vscode garbage
+.vscode/

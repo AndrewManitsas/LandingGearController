@@ -14,7 +14,7 @@ Originally designed around a three-microcontroller physical architecture (Raspbe
   * Andreas Manitsas (`amanitsb@ece.auth.gr`)
   * Maria Vrana (`mvranaa@ece.auth.gr`)
 * **Execution Status:** Software-in-the-Loop (SITL) Proof of Concept
-* **Target Stack:** Ubuntu 24.04 LTS, ROS2, Gazebo Classic 11 / Fortress, GNU Make
+* **Target Stack:** Ubuntu 24.04 LTS, ROS2, Gazebo, GNU Make
 
 ---
 
