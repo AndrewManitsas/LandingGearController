@@ -28,9 +28,17 @@ ament_target_dependencies(stabilator_controller
   std_msgs
 )
 
+# Task 2.3: Landing Gear Actuator Controller Node
+add_executable(landing_gear_controller src/landing_gear_controller.cpp)
+ament_target_dependencies(landing_gear_controller
+  rclcpp
+  std_msgs
+)
+
 install(TARGETS
   attitude_estimator
   stabilator_controller
+  landing_gear_controller
   DESTINATION lib/${PROJECT_NAME}
 )
 
