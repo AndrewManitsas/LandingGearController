@@ -30,21 +30,21 @@
         <geometry><cylinder radius="0.055" length="0.70"/></geometry>
     </collision>
 
-    <!-- Tapered Tail Cone (Aero closure) -->
+    <!-- Tapered Tail Cone -->
     <visual>
         <origin xyz="-0.40 0 0" rpy="0 -1.5708 0"/>
         <geometry><cylinder radius="0.054" length="0.10"/></geometry>
         <material name="fuselage_grey"/>
     </visual>
 
-    <!-- Nose Cone / Avionics Fairing -->
+    <!-- Nose Cone -->
     <visual>
         <origin xyz="0.38 0 0" rpy="0 1.5708 0"/>
         <geometry><sphere radius="0.054"/></geometry>
         <material name="carbon_black"/>
     </visual>
 
-    <!-- Main High-Wing (0.90m Span) -->
+    <!-- Main High-Wing -->
     <visual>
         <origin xyz="0.06 0 0.055" rpy="0 0 0"/>
         <geometry><box size="0.16 0.90 0.015"/></geometry>
@@ -87,91 +87,9 @@
                 iyy="0.025" iyz="0.0"
                 izz="0.065"/>
     </inertial>
-
-    <!-- ===== SENSOR 1: 9-DoF IMU ===== -->
-    <sensor name="imu_sensor" type="imu">
-        <always_on>1</always_on>
-        <update_rate>100.0</update_rate>
-        <visualize>true</visualize>
-        <topic>/model/uav_landing_rig/imu</topic>
-        <imu>
-        <angular_velocity>
-            <x><noise type="gaussian"><mean>0.0</mean><stddev>0.001</stddev></noise></x>
-            <y><noise type="gaussian"><mean>0.0</mean><stddev>0.001</stddev></noise></y>
-            <z><noise type="gaussian"><mean>0.0</mean><stddev>0.001</stddev></noise></z>
-        </angular_velocity>
-        <linear_acceleration>
-            <x><noise type="gaussian"><mean>0.0</mean><stddev>0.01</stddev></noise></x>
-            <y><noise type="gaussian"><mean>0.0</mean><stddev>0.01</stddev></noise></y>
-            <z><noise type="gaussian"><mean>0.0</mean><stddev>0.01</stddev></noise></z>
-        </linear_acceleration>
-        </imu>
-    </sensor>
-
-    <!-- ===== SENSOR 2: Sonar (Acoustic Cone) ===== -->
-    <sensor name="sonar_down" type="gpu_lidar">
-        <pose>0.15 0 -0.06 0 1.5708 0</pose>
-        <always_on>1</always_on>
-        <update_rate>20.0</update_rate>
-        <visualize>false</visualize>
-        <topic>/model/uav_landing_rig/sonar_down</topic>
-        <ray>
-        <scan>
-            <horizontal><samples>5</samples><resolution>1</resolution><min_angle>-0.2618</min_angle><max_angle>0.2618</max_angle></horizontal>
-            <vertical><samples>5</samples><resolution>1</resolution><min_angle>-0.2618</min_angle><max_angle>0.2618</max_angle></vertical>
-        </scan>
-        <range><min>0.02</min><max>4.0</max><resolution>0.01</resolution></range>
-        </ray>
-    </sensor>
-
-    <!-- ===== SENSOR 3: ToF 1 (Fore Optical Ray) ===== -->
-    <sensor name="tof_1" type="gpu_lidar">
-        <pose>0.195 0 -0.06 0 1.5708 0</pose>
-        <always_on>1</always_on>
-        <update_rate>50.0</update_rate>
-        <visualize>false</visualize>
-        <topic>/model/uav_landing_rig/tof_1</topic>
-        <ray>
-        <scan>
-            <horizontal><samples>1</samples><resolution>1</resolution><min_angle>0</min_angle><max_angle>0</max_angle></horizontal>
-        </scan>
-        <range><min>0.03</min><max>2.0</max><resolution>0.001</resolution></range>
-        </ray>
-    </sensor>
-
-    <!-- ===== SENSOR 4: ToF 2 (Aft-Port Optical Ray) ===== -->
-    <sensor name="tof_2" type="gpu_lidar">
-        <pose>0.125 0.039 -0.06 0 1.5708 0</pose>
-        <always_on>1</always_on>
-        <update_rate>50.0</update_rate>
-        <visualize>false</visualize>
-        <topic>/model/uav_landing_rig/tof_2</topic>
-        <ray>
-        <scan>
-            <horizontal><samples>1</samples><resolution>1</resolution><min_angle>0</min_angle><max_angle>0</max_angle></horizontal>
-        </scan>
-        <range><min>0.03</min><max>2.0</max><resolution>0.001</resolution></range>
-        </ray>
-    </sensor>
-
-    <!-- ===== SENSOR 5: ToF 3 (Aft-Starboard Optical Ray) ===== -->
-    <sensor name="tof_3" type="gpu_lidar">
-        <pose>0.125 -0.039 -0.06 0 1.5708 0</pose>
-        <always_on>1</always_on>
-        <update_rate>50.0</update_rate>
-        <visualize>false</visualize>
-        <topic>/model/uav_landing_rig/tof_3</topic>
-        <ray>
-        <scan>
-            <horizontal><samples>1</samples><resolution>1</resolution><min_angle>0</min_angle><max_angle>0</max_angle></horizontal>
-        </scan>
-        <range><min>0.03</min><max>2.0</max><resolution>0.001</resolution></range>
-        </ray>
-    </sensor>
     </link>
 
     <!-- ==================== T-TAIL HORIZONTAL STABILATOR ==================== -->
-    <!-- Pivot mounted at the apex of the vertical fin (z = +0.21m) -->
     <joint name="horizontal_stabilizer_joint" type="revolute">
     <parent link="base_link"/>
     <child link="horizontal_stabilizer_link"/>
@@ -182,7 +100,6 @@
     </joint>
 
     <link name="horizontal_stabilizer_link">
-    <!-- Aerodynamic Stabilator Blade (0.36m Span, 0.08m Chord) -->
     <visual>
         <origin xyz="-0.02 0 0" rpy="0 0 0"/>
         <geometry><box size="0.08 0.36 0.008"/></geometry>
@@ -192,14 +109,11 @@
         <origin xyz="-0.02 0 0" rpy="0 0 0"/>
         <geometry><box size="0.08 0.36 0.008"/></geometry>
     </collision>
-
-    <!-- Center Bullet Fairing atop the T-tail junction -->
     <visual>
         <origin xyz="-0.01 0 0" rpy="0 1.5708 0"/>
         <geometry><cylinder radius="0.012" length="0.10"/></geometry>
         <material name="tail_red"/>
     </visual>
-
     <inertial>
         <origin xyz="-0.02 0 0" rpy="0 0 0"/>
         <mass value="0.05"/>
@@ -269,6 +183,90 @@
                 izz="0.0002"/>
     </inertial>
     </link>
+
+    <!-- ==================== GAZEBO SENSORS ON BASE_LINK ==================== -->
+    <gazebo reference="base_link">
+    <!-- 9-DoF IMU -->
+    <sensor name="imu_sensor" type="imu">
+        <always_on>1</always_on>
+        <update_rate>100.0</update_rate>
+        <visualize>true</visualize>
+        <topic>/model/uav_landing_rig/imu</topic>
+        <imu>
+        <angular_velocity>
+            <x><noise type="gaussian"><mean>0.0</mean><stddev>0.001</stddev></noise></x>
+            <y><noise type="gaussian"><mean>0.0</mean><stddev>0.001</stddev></noise></y>
+            <z><noise type="gaussian"><mean>0.0</mean><stddev>0.001</stddev></noise></z>
+        </angular_velocity>
+        <linear_acceleration>
+            <x><noise type="gaussian"><mean>0.0</mean><stddev>0.01</stddev></noise></x>
+            <y><noise type="gaussian"><mean>0.0</mean><stddev>0.01</stddev></noise></y>
+            <z><noise type="gaussian"><mean>0.0</mean><stddev>0.01</stddev></noise></z>
+        </linear_acceleration>
+        </imu>
+    </sensor>
+
+    <!-- Downward Sonar -->
+    <sensor name="sonar_down" type="gpu_lidar">
+        <pose>0.15 0 -0.06 0 1.5708 0</pose>
+        <always_on>1</always_on>
+        <update_rate>20.0</update_rate>
+        <visualize>false</visualize>
+        <topic>/model/uav_landing_rig/sonar_down</topic>
+        <ray>
+        <scan>
+            <horizontal><samples>5</samples><resolution>1</resolution><min_angle>-0.2618</min_angle><max_angle>0.2618</max_angle></horizontal>
+            <vertical><samples>5</samples><resolution>1</resolution><min_angle>-0.2618</min_angle><max_angle>0.2618</max_angle></vertical>
+        </scan>
+        <range><min>0.02</min><max>4.0</max><resolution>0.01</resolution></range>
+        </ray>
+    </sensor>
+
+    <!-- ToF 1 (Fore) -->
+    <sensor name="tof_1" type="gpu_lidar">
+        <pose>0.195 0 -0.06 0 1.5708 0</pose>
+        <always_on>1</always_on>
+        <update_rate>50.0</update_rate>
+        <visualize>false</visualize>
+        <topic>/model/uav_landing_rig/tof_1</topic>
+        <ray>
+        <scan>
+            <horizontal><samples>1</samples><resolution>1</resolution><min_angle>0</min_angle><max_angle>0</max_angle></horizontal>
+        </scan>
+        <range><min>0.03</min><max>2.0</max><resolution>0.001</resolution></range>
+        </ray>
+    </sensor>
+
+    <!-- ToF 2 (Port) -->
+    <sensor name="tof_2" type="gpu_lidar">
+        <pose>0.125 0.039 -0.06 0 1.5708 0</pose>
+        <always_on>1</always_on>
+        <update_rate>50.0</update_rate>
+        <visualize>false</visualize>
+        <topic>/model/uav_landing_rig/tof_2</topic>
+        <ray>
+        <scan>
+            <horizontal><samples>1</samples><resolution>1</resolution><min_angle>0</min_angle><max_angle>0</max_angle></horizontal>
+        </scan>
+        <range><min>0.03</min><max>2.0</max><resolution>0.001</resolution></range>
+        </ray>
+    </sensor>
+
+    <!-- ToF 3 (Starboard) -->
+    <sensor name="tof_3" type="gpu_lidar">
+        <pose>0.125 -0.039 -0.06 0 1.5708 0</pose>
+        <always_on>1</always_on>
+        <update_rate>50.0</update_rate>
+        <visualize>false</visualize>
+        <topic>/model/uav_landing_rig/tof_3</topic>
+        <ray>
+        <scan>
+            <horizontal><samples>1</samples><resolution>1</resolution><min_angle>0</min_angle><max_angle>0</max_angle></horizontal>
+        </scan>
+        <range><min>0.03</min><max>2.0</max><resolution>0.001</resolution></range>
+        </ray>
+    </sensor>
+    </gazebo>
 
     <!-- ==================== GAZEBO SYSTEM PLUGINS ==================== -->
     <gazebo>
