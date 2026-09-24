@@ -1,0 +1,111 @@
+<sdf version="1.8">
+    <!-- High-frequency irregular surface with elevation variance (+-0.08m), modeling soft foliage/vegetation that induces acoustic-optical discrepancies (Dd < -0.05m), labeled UNSAFE -->
+    <world name="testbed_gamma">
+        <physics name="1ms" type="ignored">
+        <max_step_size>0.001</max_step_size>
+        <real_time_factor>1.0</real_time_factor>
+        </physics>
+
+        <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+        <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+        <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+        <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+        <render_engine>ogre2</render_engine>
+        </plugin>
+
+        <light type="directional" name="sun">
+        <cast_shadows>true</cast_shadows>
+        <pose>0 0 15 0 0 0</pose>
+        <diffuse>0.9 0.9 0.9 1</diffuse>
+        <specular>0.2 0.2 0.2 1</specular>
+        <direction>-0.5 0.1 -0.9</direction>
+        </light>
+
+        <model name="ground_plane">
+        <static>true</static>
+        <link name="link">
+            <collision name="collision">
+            <geometry>
+                <plane>
+                <normal>0 0 1</normal>
+                <size>100 100</size>
+                </plane>
+            </geometry>
+            </collision>
+            <visual name="visual">
+            <geometry>
+                <plane>
+                <normal>0 0 1</normal>
+                <size>100 100</size>
+                </plane>
+            </geometry>
+            <material>
+                <ambient>0.2 0.35 0.15 1</ambient>
+                <diffuse>0.25 0.45 0.2 1</diffuse>
+            </material>
+            </visual>
+        </link>
+        </model>
+
+        <!-- Irregular / Vegetated Mound Field (Elevation variance: +/-0.08m) -->
+        <!-- Mound 1 (Fore-Right) -->
+        <model name="vegetation_mound_1">
+        <static>true</static>
+        <pose>0.08 0.06 0.04 0 0 0</pose>
+        <link name="link">
+            <collision name="col">
+            <geometry><box><size>0.25 0.25 0.08</size></box></geometry>
+            </collision>
+            <visual name="vis">
+            <geometry><box><size>0.25 0.25 0.08</size></box></geometry>
+            <material><ambient>0.2 0.5 0.2 1</ambient><diffuse>0.3 0.6 0.2 1</diffuse></material>
+            </visual>
+        </link>
+        </model>
+
+        <!-- Mound 2 (Aft-Left, Lower Pocket) -->
+        <model name="vegetation_mound_2">
+        <static>true</static>
+        <pose>-0.07 0.08 0.07 0 0 0.4</pose>
+        <link name="link">
+            <collision name="col">
+            <geometry><box><size>0.3 0.2 0.14</size></box></geometry>
+            </collision>
+            <visual name="vis">
+            <geometry><box><size>0.3 0.2 0.14</size></box></geometry>
+            <material><ambient>0.15 0.45 0.15 1</ambient><diffuse>0.2 0.55 0.2 1</diffuse></material>
+            </visual>
+        </link>
+        </model>
+
+        <!-- Mound 3 (Aft-Right Raised Clump) -->
+        <model name="vegetation_mound_3">
+        <static>true</static>
+        <pose>-0.05 -0.09 0.05 0 0 -0.3</pose>
+        <link name="link">
+            <collision name="col">
+            <geometry><box><size>0.22 0.28 0.10</size></box></geometry>
+            </collision>
+            <visual name="vis">
+            <geometry><box><size>0.22 0.28 0.10</size></box></geometry>
+            <material><ambient>0.25 0.5 0.25 1</ambient><diffuse>0.3 0.6 0.3 1</diffuse></material>
+            </visual>
+        </link>
+        </model>
+
+        <!-- Center Canopy (Elevated return for wide sonar cone) -->
+        <model name="central_canopy">
+        <static>true</static>
+        <pose>0.0 0.0 0.08 0 0 0</pose>
+        <link name="link">
+            <collision name="col">
+            <geometry><cylinder><radius>0.18</radius><length>0.16</length></cylinder></geometry>
+            </collision>
+            <visual name="vis">
+            <geometry><cylinder><radius>0.18</radius><length>0.16</length></cylinder></geometry>
+            <material><ambient>0.1 0.4 0.1 1</ambient><diffuse>0.15 0.5 0.15 1</diffuse></material>
+            </visual>
+        </link>
+        </model>
+    </world>
+</sdf>
