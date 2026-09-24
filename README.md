@@ -13,8 +13,8 @@ Originally conceptualized around a three-microcontroller physical architecture (
 * **Authors:** 
   * Andreas Manitsas (`amanitsb@ece.auth.gr`)
   * Maria Vrana (`mvranaa@ece.auth.gr`)
-* **Execution Status:** Software-in-the-Loop (SITL) Proof of Concept
-* **Target Stack:** Ubuntu 24.04 LTS, ROS 2 Jazzy, Gazebo Harmonic, colcon
+* **Execution Status:** Software-in-the-Loop (SITL) Proof of Concept (v1.0.0 Verified)
+* **Target Stack:** Ubuntu 24.04 LTS, ROS 2 Jazzy Jalisco, Gazebo Harmonic, Python 3 (`pandas`, `scikit-learn`, `numpy`)
 
 ---
 
@@ -42,7 +42,7 @@ Originally conceptualized around a three-microcontroller physical architecture (
         +-----------------------------------------------------+
         |                 Control & Actuation                 |
         |   - Pitch Trim Adjustment                           |
-        |   - Gear Deploy (SAFE) vs. Abort/Hover (UNSAFE)     |
+        |   - Gear Deploy (SAFE) vs. Inhibit/Abort (UNSAFE)   |
         +-----------------------------------------------------+
 ```
 
@@ -54,11 +54,11 @@ Detailed mathematical formulations, interface contracts, and task breakdowns are
 
 | Document | Description |
 | :--- | :--- |
-| [**System Architecture**](docs/architecture.md) | Detailed Three-Domain computational model (Sensing, Intelligence, Control), hardware-to-simulation mapping, and safety decoupling principles. |
+| [**System Architecture**](docs/architecture.md) | Decoupled Three-Domain computational model (Sensing, Intelligence, Control), hardware-to-simulation mapping, and safety interlock principles. |
 | [**Sensors & Physics Modeling**](docs/sensors_and_physics.md) | Overflow-safe complementary filter math, ToF surface normal extraction, acoustic-optical delta ($\Delta d$), and 7D feature vector formulation. |
-| [**Work Breakdown Structure**](docs/work_breakdown.md) | Flat 5-phase task hierarchy. |
-| [**ROS 2 Interfaces & FSM**](docs/ros_interfaces.md) | ROS 2 topic names, message structures, publication rates, TF2 transform tree, and actuator finite-state machine. |
-| [**Testing & Validation Plan**](docs/testing_and_validation.md) | Synthetic testbeds (Alpha, Beta, Gamma), closed-loop verification metrics, and latency benchmarking criteria. |
+| [**Work Breakdown Structure**](docs/work_breakdown.md) | 5-phase project lifecycle tracking completed milestones. |
+| [**ROS 2 Interfaces & FSM**](docs/ros_interfaces.md) | Complete topic catalog, QoS profiles, TF2 coordinate hierarchy, and landing gear safety actuator logic. |
+| [**Testing & Validation Plan**](docs/testing_and_validation.md) | Synthetic testbeds (Alpha, Beta, Gamma), automated regression test harness, and sub-microsecond latency benchmarks. |
 
 ---
 
@@ -67,66 +67,77 @@ Detailed mathematical formulations, interface contracts, and task breakdowns are
 ```text
 LandingGearController/
 ├── config/
-│   └── bridge_config.yaml       # ros_gz_bridge topic mapping
-├── docs/                        # Modular technical specifications
+│   └── bridge_config.yaml         # ros_gz_bridge topic mapping
+├── data/
+│   └── dataset.csv                # Labeled 7D feature vectors collected across testbeds
+├── docs/                          # Modular technical specifications
 │   ├── architecture.md
 │   ├── sensors_and_physics.md
 │   ├── work_breakdown.md
 │   ├── ros_interfaces.md
 │   └── testing_and_validation.md
-├── models/                      # Airframe URDF and sensor definitions
+├── launch/
+│   └── system_launch.py           # Unified orchestrator (supports world:= and gui:=)
+├── models/                        # Airframe URDF and sensor definitions
 │   └── urdf/landing_rig.urdf
+├── scripts/
+│   ├── record_dataset.py          # Multi-world 7D feature harvesting harness
+│   ├── train_classifier.py        # Model trainer & C++ inference rule generator
+│   └── verify_system.py           # Automated regression verification harness
 ├── src/
-│   ├── control_domain/          # Pitch PID, attitude estimator, and gear controller (C++)
-│   ├── sensing_domain/          # Sonar and ToF array pre-processing (C++)
-│   └── intelligence_domain/     # Terrain feature extraction & Edge AI inference (Python)
-├── worlds/                      # Gazebo world definitions (Alpha, Beta, Gamma)
-└── README.md                    # Primary repository overview
+│   ├── control_domain/            # Pitch PID, attitude estimator, and gear controller (C++)
+│   ├── sensing_domain/            # Temporal filtering, surface normal estimation, and 7D extraction (C++)
+│   └── intelligence_domain/       # Deterministic C++ decision tree inference and latency benchmark
+├── worlds/                        # Gazebo world definitions (Alpha, Beta, Gamma)
+│   ├── testbed_alpha.sdf
+│   ├── testbed_beta.sdf
+│   └── testbed_gamma.sdf
+└── README.md                      # Primary repository overview
 ```
 
 ---
 
 ## 5. Build & Execution Workflow
 
-### 5.1 Build C++ Nodes
+### 5.1 Compilation
 
 ```text
 # Source ROS 2 Jazzy environment
 source /opt/ros/jazzy/setup.bash
 
-# Build all packages
+# Build workspace with symlink install
 cd ~/repos/LandingGearController
 colcon build --symlink-install
 source install/setup.bash
 ```
 
-Compiled binaries are output to `./bin/sensor_hub_node` and `./bin/flight_actuator_node`.
-
-### 5.2 Running the System
+### 5.2 Unified System Launch
 
 Execute nodes across separate terminal sessions or through launch scripts:
 
 ```text
-# Terminal 1: Simulation World
-gz sim empty.sdf
+# Testbed Alpha (Nominal flat runway, interactive GUI)
+ros2 launch launch/system_launch.py world:=alpha gui:=true
 
-# Terminal 2: ROS-Gazebo Parameter Bridge
-ros2 run ros_gz_bridge parameter_bridge --ros-args -p config_file:=config/bridge_config.yaml
+# Testbed Beta (20-degree sloped ramp, headless execution)
+ros2 launch launch/system_launch.py world:=beta gui:=false
 
-# Terminal 3: Attitude Estimator Node
-ros2 run control_domain attitude_estimator
-
-# Terminal 4: Stabilator Pitch PID Controller
-ros2 run control_domain stabilator_controller
-
-# Terminal 5: Landing Gear Actuator Controller
-ros2 run control_domain landing_gear_controller
+# Testbed Gamma (Irregular vegetation mounds, interactive GUI)
+ros2 launch launch/system_launch.py world:=gamma gui:=true
 ```
 
-### 5.3 Clean Build Artifacts
+### 5.3 Automated Verification & Benchmarking
+
+Execute the headless regression suite across all three testbeds:
 
 ```text
-make clean
+python3 scripts/verify_system.py
+```
+
+Run the deterministic C++ inference latency benchmark:
+
+```text
+ros2 run intelligence_domain benchmark_inference
 ```
 
 ---

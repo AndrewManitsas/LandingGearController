@@ -1,6 +1,7 @@
 import os
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, TimerAction
+from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 
@@ -15,16 +16,34 @@ def generate_launch_description():
         description='Simulation testbed world: alpha, beta, or gamma'
     )
 
+    gui_arg = DeclareLaunchArgument(
+        'gui',
+        default_value='true',
+        description='Launch Gazebo GUI (true) or run headless server (false)'
+    )
+
     world_choice = LaunchConfiguration('world')
+    gui_choice = LaunchConfiguration('gui')
+
     world_file = PythonExpression([
         f"'{ws_dir}/worlds/testbed_' + '", world_choice, "'.strip() + '.sdf'"
     ])
 
-    gz_sim = ExecuteProcess(
+    # 1a. Gazebo Sim with GUI (gui:=true)
+    gz_sim_gui = ExecuteProcess(
         cmd=['gz', 'sim', '-r', world_file],
-        output='screen'
+        output='screen',
+        condition=IfCondition(gui_choice)
     )
 
+    # 1b. Gazebo Sim Headless Server (gui:=false)
+    gz_sim_server = ExecuteProcess(
+        cmd=['gz', 'sim', '-r', '-s', world_file],
+        output='screen',
+        condition=UnlessCondition(gui_choice)
+    )
+
+    # 2. Spawn UAV Model after Gazebo initialization (2.5s)
     spawn_model = TimerAction(
         period=2.5,
         actions=[
@@ -41,6 +60,7 @@ def generate_launch_description():
         ]
     )
 
+    # 3. ROS-Gazebo Bridge
     bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
@@ -48,6 +68,7 @@ def generate_launch_description():
         output='screen'
     )
 
+    # 4. Domain Nodes
     attitude_estimator = Node(
         package='control_domain',
         executable='attitude_estimator',
@@ -85,7 +106,9 @@ def generate_launch_description():
 
     return LaunchDescription([
         world_arg,
-        gz_sim,
+        gui_arg,
+        gz_sim_gui,
+        gz_sim_server,
         spawn_model,
         bridge,
         attitude_estimator,
