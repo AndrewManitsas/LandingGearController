@@ -1,192 +1,158 @@
-// ==============================================================================
-// Required Header Files
-// ==============================================================================
-#include <algorithm>  // Provides std::clamp
-#include <chrono>     // Time operations
-#include <cmath>      // Math functions (std::abs)
-#include <memory>     // Smart pointers
-#include <string>     // Text handling
+#include <chrono>
+#include <cmath>
+#include <memory>
+#include <algorithm>
 
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "std_msgs/msg/float64.hpp"
-#include "std_msgs/msg/string.hpp"
 
 using namespace std::chrono_literals;
 
-
-// ==============================================================================
-// Class: LandingGearController
-// Smoothly ramps gear position and reports deployment status.
-// ==============================================================================
 class LandingGearController : public rclcpp::Node
 {
 public:
-  explicit LandingGearController(const rclcpp::NodeOptions & options = rclcpp::NodeOptions())
-  : Node("landing_gear_controller", options),
-    current_pos_(0.0),
-    target_pos_(0.0),
-    status_("STOWED")
+  LandingGearController()
+  : Node("landing_gear_controller"),
+    current_position_(0.0),
+    target_position_(0.0),
+    deploy_requested_(false),
+    abort_active_(false)
   {
-    // --------------------------------------------------------------------------
-    // Parameters (Tunable at runtime)
-    // --------------------------------------------------------------------------
-    this->declare_parameter<double>("stowed_angle_rad", 0.0);        // 0.0 deg (up inside bay)
-    this->declare_parameter<double>("deployed_angle_rad", 1.5708);   // 90.0 deg (down and locked)
-    this->declare_parameter<double>("deploy_speed_rad_s", 0.50);     // Takes ~3.1 seconds to swing 90 deg
-    this->declare_parameter<double>("loop_rate_hz", 50.0);           // 50 Hz update loop
+    this->declare_parameter<double>("stowed_angle", 0.0);
+    this->declare_parameter<double>("deployed_angle", 1.5708);
+    this->declare_parameter<double>("rate_limit", 0.50);  // rad/s
 
-    stowed_angle_ = this->get_parameter("stowed_angle_rad").as_double();
-    deployed_angle_ = this->get_parameter("deployed_angle_rad").as_double();
-    speed_rad_s_ = this->get_parameter("deploy_speed_rad_s").as_double();
-    double loop_rate = this->get_parameter("loop_rate_hz").as_double();
+    stowed_angle_ = this->get_parameter("stowed_angle").as_double();
+    deployed_angle_ = this->get_parameter("deployed_angle").as_double();
+    rate_limit_ = this->get_parameter("rate_limit").as_double();
 
-    // Initialize current position to fully stowed
-    current_pos_ = stowed_angle_;
-    target_pos_ = stowed_angle_;
-
-    // --------------------------------------------------------------------------
-    // Subscriptions
-    // --------------------------------------------------------------------------
-    // High-level deploy/retract command (true = down, false = up)
-    cmd_sub_ = this->create_subscription<std_msgs::msg::Bool>(
+    // 1. Operator / Flight Stack Gear Deploy Request
+    deploy_sub_ = this->create_subscription<std_msgs::msg::Bool>(
       "/control/gear_deploy",
       10,
-      std::bind(&LandingGearController::command_callback, this, std::placeholders::_1)
+      std::bind(&LandingGearController::deploy_callback, this, std::placeholders::_1)
     );
 
-    // --------------------------------------------------------------------------
-    // Publishers
-    // --------------------------------------------------------------------------
-    // Raw joint command sent to ros_gz_bridge
-    gear_pub_ = this->create_publisher<std_msgs::msg::Float64>(
+    // 2. Edge AI Safety Interlock (Phase 4 Abort)
+    abort_sub_ = this->create_subscription<std_msgs::msg::Bool>(
+      "/intelligence/abort",
+      10,
+      std::bind(&LandingGearController::abort_callback, this, std::placeholders::_1)
+    );
+
+    // Actuator Command to Gazebo Bridge
+    cmd_pub_ = this->create_publisher<std_msgs::msg::Float64>(
       "/control/gear_cmd",
       10
     );
 
-    // Telemetry status for the supervisory controller
-    status_pub_ = this->create_publisher<std_msgs::msg::String>(
+    // Status Telemetry
+    status_pub_ = this->create_publisher<std_msgs::msg::Float64>(
       "/control/gear_status",
       10
     );
 
-    // --------------------------------------------------------------------------
-    // Control Loop Timer (Fixed 50 Hz)
-    // --------------------------------------------------------------------------
-    auto period = std::chrono::duration<double>(1.0 / loop_rate);
+    last_time_ = this->now();
     timer_ = this->create_wall_timer(
-      std::chrono::duration_cast<std::chrono::nanoseconds>(period),
-      std::bind(&LandingGearController::update_loop, this)
+      20ms,  // 50 Hz control loop
+      std::bind(&LandingGearController::control_loop, this)
     );
 
     RCLCPP_INFO(
       this->get_logger(),
-      "Landing Gear Controller online. Stowed: %.2f rad, Deployed: %.2f rad, Speed: %.2f rad/s",
-      stowed_angle_, deployed_angle_, speed_rad_s_
+      "Landing Gear Controller active with Edge AI interlock. Stowed: %.2f rad, Deployed: %.2f rad, Speed: %.2f rad/s",
+      stowed_angle_, deployed_angle_, rate_limit_
     );
   }
 
 private:
-  // ============================================================================
-  // Callback: Receives deployment requests
-  // ============================================================================
-  void command_callback(const std_msgs::msg::Bool::SharedPtr msg)
+  void deploy_callback(const std_msgs::msg::Bool::SharedPtr msg)
   {
-    if (msg->data)
-    {
-      target_pos_ = deployed_angle_;
-      RCLCPP_INFO(this->get_logger(), "Deployment command received: EXTENDING gear.");
-    }
-    else
-    {
-      target_pos_ = stowed_angle_;
-      RCLCPP_INFO(this->get_logger(), "Retraction command received: RETRACTING gear.");
+    deploy_requested_ = msg->data;
+    update_target();
+  }
+
+  void abort_callback(const std_msgs::msg::Bool::SharedPtr msg)
+  {
+    if (msg->data != abort_active_) {
+      abort_active_ = msg->data;
+      if (abort_active_) {
+        RCLCPP_WARN(
+          this->get_logger(),
+          "EDGE AI ABORT TRIGGERED: Unsafe touchdown terrain! Inhibiting gear deployment."
+        );
+      } else {
+        RCLCPP_INFO(
+          this->get_logger(),
+          "Edge AI clearance restored: Terrain SAFE."
+        );
+      }
+      update_target();
     }
   }
 
-  // ============================================================================
-  // Periodic Update Loop (50 Hz)
-  // Ramps current_pos_ towards target_pos_ by a maximum step of (speed * dt)
-  // ============================================================================
-  void update_loop()
+  void update_target()
   {
-    const double dt = 0.02; // 50 Hz = 20 ms
-    double max_step = speed_rad_s_ * dt;
-
-    // --------------------------------------------------------------------------
-    // Step 1: Ramp Position
-    // --------------------------------------------------------------------------
-    if (current_pos_ < target_pos_)
-    {
-      current_pos_ += max_step;
-      if (current_pos_ >= target_pos_)
-      {
-        current_pos_ = target_pos_;
-        status_ = "DEPLOYED";
-      }
-      else
-      {
-        status_ = "DEPLOYING";
-      }
+    // Safety Interlock: if terrain is UNSAFE, force STOWED regardless of operator request
+    if (abort_active_) {
+      target_position_ = stowed_angle_;
+    } else {
+      target_position_ = deploy_requested_ ? deployed_angle_ : stowed_angle_;
     }
-    else if (current_pos_ > target_pos_)
-    {
-      current_pos_ -= max_step;
-      if (current_pos_ <= target_pos_)
-      {
-        current_pos_ = target_pos_;
-        status_ = "STOWED";
-      }
-      else
-      {
-        status_ = "RETRACTING";
-      }
+  }
+
+  void control_loop()
+  {
+    rclcpp::Time now = this->now();
+    double dt = (now - last_time_).seconds();
+    last_time_ = now;
+
+    if (dt <= 0.0 || dt > 0.1) {
+      dt = 0.02;
     }
 
-    // --------------------------------------------------------------------------
-    // Step 2: Publish Position Command to Actuator
-    // --------------------------------------------------------------------------
+    // Rate-limited trajectory generation
+    double error = target_position_ - current_position_;
+    double max_step = rate_limit_ * dt;
+
+    if (std::abs(error) <= max_step) {
+      current_position_ = target_position_;
+    } else {
+      current_position_ += std::copysign(max_step, error);
+    }
+
+    // Publish joint position command to bridge
     auto cmd_msg = std_msgs::msg::Float64();
-    cmd_msg.data = current_pos_;
-    gear_pub_->publish(cmd_msg);
+    cmd_msg.data = current_position_;
+    cmd_pub_->publish(cmd_msg);
 
-    // --------------------------------------------------------------------------
-    // Step 3: Publish Status String
-    // --------------------------------------------------------------------------
-    auto status_msg = std_msgs::msg::String();
-    status_msg.data = status_;
+    // Publish telemetry
+    auto status_msg = std_msgs::msg::Float64();
+    status_msg.data = current_position_;
     status_pub_->publish(status_msg);
   }
 
-  // Subscriptions, Publishers, and Timers
-  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr cmd_sub_;
-  rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr gear_pub_;
-  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_pub_;
-  rclcpp::TimerBase::SharedPtr timer_;
-
-  // Internal State
-  double current_pos_;
-  double target_pos_;
-  std::string status_;
-
-  // Configured Parameters
   double stowed_angle_;
   double deployed_angle_;
-  double speed_rad_s_;
+  double rate_limit_;
+  double current_position_;
+  double target_position_;
+  bool deploy_requested_;
+  bool abort_active_;
+
+  rclcpp::Time last_time_;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr deploy_sub_;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr abort_sub_;
+  rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr cmd_pub_;
+  rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr status_pub_;
+  rclcpp::TimerBase::SharedPtr timer_;
 };
 
-
-// ==============================================================================
-// Main Entry Point
-// ==============================================================================
-int main(int argc, char **argv)
+int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
-
-  rclcpp::NodeOptions options;
-  options.append_parameter_override("use_sim_time", true);
-
-  rclcpp::spin(std::make_shared<LandingGearController>(options));
+  rclcpp::spin(std::make_shared<LandingGearController>());
   rclcpp::shutdown();
   return 0;
 }
