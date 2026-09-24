@@ -6,13 +6,6 @@
         <real_time_factor>1.0</real_time_factor>
         </physics>
 
-        <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
-        <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
-        <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
-        <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
-        <render_engine>ogre2</render_engine>
-        </plugin>
-
         <light type="directional" name="sun">
         <cast_shadows>true</cast_shadows>
         <pose>0 0 15 0 0 0</pose>
@@ -21,7 +14,6 @@
         <direction>-0.5 0.1 -0.9</direction>
         </light>
 
-        <!-- Base World Grid -->
         <model name="ground_plane">
         <static>true</static>
         <link name="link">
@@ -48,12 +40,11 @@
         </link>
         </model>
 
-        <!-- 20-Degree Inclined Ramp (Exceeds 15 deg threshold - UNSAFE) -->
+        <!-- 20-Degree Inclined Ramp -->
         <model name="sloped_terrain">
         <static>true</static>
-        <!-- Inclined 20 degrees (0.349066 rad) along pitch axis -->
         <pose>0.0 0.0 0.2 0.0 0.349066 0.0</pose>
-        <link name="link">
+        <link name="sloped_link">
             <collision name="collision">
             <geometry>
                 <box>
@@ -75,11 +66,11 @@
         </link>
         </model>
 
-        <!-- Stepped Curbs (Discontinuous drop-offs > 0.10m) -->
+        <!-- Stepped Curb Drop-Off -->
         <model name="stepped_curb_1">
         <static>true</static>
         <pose>2.5 0.0 0.15 0 0 0</pose>
-        <link name="link">
+        <link name="curb_link">
             <collision name="collision">
             <geometry>
                 <box>

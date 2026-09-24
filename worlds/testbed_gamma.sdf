@@ -6,13 +6,6 @@
         <real_time_factor>1.0</real_time_factor>
         </physics>
 
-        <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
-        <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
-        <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
-        <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
-        <render_engine>ogre2</render_engine>
-        </plugin>
-
         <light type="directional" name="sun">
         <cast_shadows>true</cast_shadows>
         <pose>0 0 15 0 0 0</pose>
@@ -47,61 +40,60 @@
         </link>
         </model>
 
-        <!-- Irregular / Vegetated Mound Field (Elevation variance: +/-0.08m) -->
         <!-- Mound 1 (Fore-Right) -->
         <model name="vegetation_mound_1">
         <static>true</static>
         <pose>0.08 0.06 0.04 0 0 0</pose>
-        <link name="link">
-            <collision name="col">
+        <link name="mound1_link">
+            <collision name="collision">
             <geometry><box><size>0.25 0.25 0.08</size></box></geometry>
             </collision>
-            <visual name="vis">
+            <visual name="visual">
             <geometry><box><size>0.25 0.25 0.08</size></box></geometry>
             <material><ambient>0.2 0.5 0.2 1</ambient><diffuse>0.3 0.6 0.2 1</diffuse></material>
             </visual>
         </link>
         </model>
 
-        <!-- Mound 2 (Aft-Left, Lower Pocket) -->
+        <!-- Mound 2 (Aft-Left) -->
         <model name="vegetation_mound_2">
         <static>true</static>
         <pose>-0.07 0.08 0.07 0 0 0.4</pose>
-        <link name="link">
-            <collision name="col">
+        <link name="mound2_link">
+            <collision name="collision">
             <geometry><box><size>0.3 0.2 0.14</size></box></geometry>
             </collision>
-            <visual name="vis">
+            <visual name="visual">
             <geometry><box><size>0.3 0.2 0.14</size></box></geometry>
             <material><ambient>0.15 0.45 0.15 1</ambient><diffuse>0.2 0.55 0.2 1</diffuse></material>
             </visual>
         </link>
         </model>
 
-        <!-- Mound 3 (Aft-Right Raised Clump) -->
+        <!-- Mound 3 (Aft-Right) -->
         <model name="vegetation_mound_3">
         <static>true</static>
         <pose>-0.05 -0.09 0.05 0 0 -0.3</pose>
-        <link name="link">
-            <collision name="col">
+        <link name="mound3_link">
+            <collision name="collision">
             <geometry><box><size>0.22 0.28 0.10</size></box></geometry>
             </collision>
-            <visual name="vis">
+            <visual name="visual">
             <geometry><box><size>0.22 0.28 0.10</size></box></geometry>
             <material><ambient>0.25 0.5 0.25 1</ambient><diffuse>0.3 0.6 0.3 1</diffuse></material>
             </visual>
         </link>
         </model>
 
-        <!-- Center Canopy (Elevated return for wide sonar cone) -->
+        <!-- Central Canopy -->
         <model name="central_canopy">
         <static>true</static>
         <pose>0.0 0.0 0.08 0 0 0</pose>
-        <link name="link">
-            <collision name="col">
+        <link name="canopy_link">
+            <collision name="collision">
             <geometry><cylinder><radius>0.18</radius><length>0.16</length></cylinder></geometry>
             </collision>
-            <visual name="vis">
+            <visual name="visual">
             <geometry><cylinder><radius>0.18</radius><length>0.16</length></cylinder></geometry>
             <material><ambient>0.1 0.4 0.1 1</ambient><diffuse>0.15 0.5 0.15 1</diffuse></material>
             </visual>

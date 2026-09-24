@@ -1,12 +1,6 @@
 import os
 from launch import LaunchDescription
-from launch.actions import (
-    DeclareLaunchArgument,
-    ExecuteProcess,
-    SetEnvironmentVariable,
-    TimerAction,
-)
-from launch.conditions import IfCondition
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, TimerAction
 from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 
@@ -15,46 +9,25 @@ def generate_launch_description():
     urdf_path = os.path.join(ws_dir, 'models', 'urdf', 'landing_rig.urdf')
     bridge_config = os.path.join(ws_dir, 'config', 'bridge_config.yaml')
 
-    # 1. Enforce OGRE 2 across all Gazebo and sensor rendering systems
-    set_render_engine = SetEnvironmentVariable(
-        name='GZ_RENDERING_ENGINE',
-        value='ogre2'
-    )
-
-    # 2. Launch Arguments
+    # Launch argument: world (choices: alpha, beta, gamma)
     world_arg = DeclareLaunchArgument(
         'world',
         default_value='alpha',
         description='Simulation testbed world: alpha, beta, or gamma'
     )
 
-    gui_arg = DeclareLaunchArgument(
-        'gui',
-        default_value='true',
-        description='Launch Gazebo visualization GUI in an isolated client process'
-    )
-
     world_choice = LaunchConfiguration('world')
-    gui_choice = LaunchConfiguration('gui')
-
     world_file = PythonExpression([
         f"'{ws_dir}/worlds/testbed_' + '", world_choice, "'.strip() + '.sdf'"
     ])
 
-    # 3. Gazebo Physics & Sensor Server (-s = server only, -r = run immediately)
-    gz_server = ExecuteProcess(
-        cmd=['gz', 'sim', '-s', '-r', world_file],
+    # 1. Start Gazebo Sim with selected world (unpaused with -r)
+    gz_sim = ExecuteProcess(
+        cmd=['gz', 'sim', '-r', world_file],
         output='screen'
     )
 
-    # 4. Decoupled Gazebo GUI Client (-g = GUI only)
-    gz_gui = ExecuteProcess(
-        cmd=['gz', 'sim', '-g'],
-        output='screen',
-        condition=IfCondition(gui_choice)
-    )
-
-    # 5. Model Spawner (waits 2.5s for gz_server to register entity services)
+    # 2. Spawn the UAV Model (2.5s delay to allow Gazebo to initialize)
     spawn_model = TimerAction(
         period=2.5,
         actions=[
@@ -71,7 +44,7 @@ def generate_launch_description():
         ]
     )
 
-    # 6. ROS-Gazebo Parameter Bridge
+    # 3. ROS-Gazebo Parameter Bridge
     bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
@@ -79,7 +52,7 @@ def generate_launch_description():
         output='screen'
     )
 
-    # 7. Domain Nodes
+    # 4. Control Domain: Attitude Estimator Node
     attitude_estimator = Node(
         package='control_domain',
         executable='attitude_estimator',
@@ -87,6 +60,7 @@ def generate_launch_description():
         output='screen'
     )
 
+    # 5. Control Domain: Stabilator PID Controller Node
     stabilator_controller = Node(
         package='control_domain',
         executable='stabilator_controller',
@@ -94,6 +68,7 @@ def generate_launch_description():
         output='screen'
     )
 
+    # 6. Control Domain: Landing Gear Actuator Controller Node
     landing_gear_controller = Node(
         package='control_domain',
         executable='landing_gear_controller',
@@ -101,6 +76,7 @@ def generate_launch_description():
         output='screen'
     )
 
+    # 7. Sensing Domain: Sensor Processor & Feature Extraction Node
     sensor_processor = Node(
         package='sensing_domain',
         executable='sensor_processor',
@@ -109,11 +85,8 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        set_render_engine,
         world_arg,
-        gui_arg,
-        gz_server,
-        gz_gui,
+        gz_sim,
         spawn_model,
         bridge,
         attitude_estimator,

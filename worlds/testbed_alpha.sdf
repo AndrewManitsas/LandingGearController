@@ -6,15 +6,6 @@
         <real_time_factor>1.0</real_time_factor>
         </physics>
 
-        <!-- Essential Gazebo Harmonic Simulation Plugins -->
-        <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
-        <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
-        <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
-        <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
-        <render_engine>ogre2</render_engine>
-        </plugin>
-
-        <!-- Sunlight -->
         <light type="directional" name="sun">
         <cast_shadows>true</cast_shadows>
         <pose>0 0 15 0 0 0</pose>
@@ -23,7 +14,6 @@
         <direction>-0.5 0.1 -0.9</direction>
         </light>
 
-        <!-- Flat Concrete Runway (Alpha - SAFE) -->
         <model name="ground_plane">
         <static>true</static>
         <link name="link">
