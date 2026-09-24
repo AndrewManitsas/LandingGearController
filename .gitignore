@@ -45,5 +45,8 @@ build/
 install/
 log/
 
+# Python
+__pycache__/
+
 # vscode garbage
 .vscode/
