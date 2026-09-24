@@ -9,7 +9,6 @@ def generate_launch_description():
     urdf_path = os.path.join(ws_dir, 'models', 'urdf', 'landing_rig.urdf')
     bridge_config = os.path.join(ws_dir, 'config', 'bridge_config.yaml')
 
-    # Launch argument: world (choices: alpha, beta, gamma)
     world_arg = DeclareLaunchArgument(
         'world',
         default_value='alpha',
@@ -21,13 +20,11 @@ def generate_launch_description():
         f"'{ws_dir}/worlds/testbed_' + '", world_choice, "'.strip() + '.sdf'"
     ])
 
-    # 1. Start Gazebo Sim with selected world (unpaused with -r)
     gz_sim = ExecuteProcess(
         cmd=['gz', 'sim', '-r', world_file],
         output='screen'
     )
 
-    # 2. Spawn the UAV Model (2.5s delay to allow Gazebo to initialize)
     spawn_model = TimerAction(
         period=2.5,
         actions=[
@@ -44,7 +41,6 @@ def generate_launch_description():
         ]
     )
 
-    # 3. ROS-Gazebo Parameter Bridge
     bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
@@ -52,7 +48,6 @@ def generate_launch_description():
         output='screen'
     )
 
-    # 4. Control Domain: Attitude Estimator Node
     attitude_estimator = Node(
         package='control_domain',
         executable='attitude_estimator',
@@ -60,7 +55,6 @@ def generate_launch_description():
         output='screen'
     )
 
-    # 5. Control Domain: Stabilator PID Controller Node
     stabilator_controller = Node(
         package='control_domain',
         executable='stabilator_controller',
@@ -68,7 +62,6 @@ def generate_launch_description():
         output='screen'
     )
 
-    # 6. Control Domain: Landing Gear Actuator Controller Node
     landing_gear_controller = Node(
         package='control_domain',
         executable='landing_gear_controller',
@@ -76,10 +69,16 @@ def generate_launch_description():
         output='screen'
     )
 
-    # 7. Sensing Domain: Sensor Processor & Feature Extraction Node
     sensor_processor = Node(
         package='sensing_domain',
         executable='sensor_processor',
+        parameters=[{'use_sim_time': True}],
+        output='screen'
+    )
+
+    terrain_classifier = Node(
+        package='intelligence_domain',
+        executable='terrain_classifier',
         parameters=[{'use_sim_time': True}],
         output='screen'
     )
@@ -92,5 +91,6 @@ def generate_launch_description():
         attitude_estimator,
         stabilator_controller,
         landing_gear_controller,
-        sensor_processor
+        sensor_processor,
+        terrain_classifier
     ])
