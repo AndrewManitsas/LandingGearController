@@ -1,0 +1,95 @@
+<sdf version="1.8">
+    <!-- Sloped terrain (20 deg grade, >15 deg unsafe threshold) and stepped drop-offs (0.15m), labeled UNSAFE -->
+    <world name="testbed_beta">
+        <physics name="1ms" type="ignored">
+        <max_step_size>0.001</max_step_size>
+        <real_time_factor>1.0</real_time_factor>
+        </physics>
+
+        <light type="directional" name="sun">
+        <cast_shadows>true</cast_shadows>
+        <pose>0 0 15 0 0 0</pose>
+        <diffuse>0.9 0.9 0.9 1</diffuse>
+        <specular>0.2 0.2 0.2 1</specular>
+        <direction>-0.5 0.1 -0.9</direction>
+        </light>
+
+        <model name="ground_plane">
+        <static>true</static>
+        <link name="link">
+            <collision name="collision">
+            <geometry>
+                <plane>
+                <normal>0 0 1</normal>
+                <size>100 100</size>
+                </plane>
+            </geometry>
+            </collision>
+            <visual name="visual">
+            <geometry>
+                <plane>
+                <normal>0 0 1</normal>
+                <size>100 100</size>
+                </plane>
+            </geometry>
+            <material>
+                <ambient>0.3 0.3 0.3 1</ambient>
+                <diffuse>0.4 0.4 0.4 1</diffuse>
+            </material>
+            </visual>
+        </link>
+        </model>
+
+        <!-- 20-Degree Inclined Ramp -->
+        <model name="sloped_terrain">
+        <static>true</static>
+        <pose>0.0 0.0 0.2 0.0 0.349066 0.0</pose>
+        <link name="sloped_link">
+            <collision name="collision">
+            <geometry>
+                <box>
+                <size>4.0 4.0 0.1</size>
+                </box>
+            </geometry>
+            </collision>
+            <visual name="visual">
+            <geometry>
+                <box>
+                <size>4.0 4.0 0.1</size>
+                </box>
+            </geometry>
+            <material>
+                <ambient>0.8 0.4 0.2 1</ambient>
+                <diffuse>0.8 0.4 0.2 1</diffuse>
+            </material>
+            </visual>
+        </link>
+        </model>
+
+        <!-- Stepped Curb Drop-Off -->
+        <model name="stepped_curb_1">
+        <static>true</static>
+        <pose>2.5 0.0 0.15 0 0 0</pose>
+        <link name="curb_link">
+            <collision name="collision">
+            <geometry>
+                <box>
+                <size>1.0 4.0 0.30</size>
+                </box>
+            </geometry>
+            </collision>
+            <visual name="visual">
+            <geometry>
+                <box>
+                <size>1.0 4.0 0.30</size>
+                </box>
+            </geometry>
+            <material>
+                <ambient>0.6 0.2 0.1 1</ambient>
+                <diffuse>0.6 0.2 0.1 1</diffuse>
+            </material>
+            </visual>
+        </link>
+        </model>
+    </world>
+</sdf>

@@ -1,23 +1,35 @@
 import os
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess, TimerAction
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, TimerAction
+from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 
 def generate_launch_description():
-    # Workspace paths
     ws_dir = os.path.expanduser('~/repos/LandingGearController')
     urdf_path = os.path.join(ws_dir, 'models', 'urdf', 'landing_rig.urdf')
     bridge_config = os.path.join(ws_dir, 'config', 'bridge_config.yaml')
 
-    # 1. Start Gazebo Sim (unpaused with -r flag)
+    # Launch argument: world (choices: alpha, beta, gamma)
+    world_arg = DeclareLaunchArgument(
+        'world',
+        default_value='alpha',
+        description='Simulation testbed world: alpha, beta, or gamma'
+    )
+
+    world_choice = LaunchConfiguration('world')
+    world_file = PythonExpression([
+        f"'{ws_dir}/worlds/testbed_' + '", world_choice, "'.strip() + '.sdf'"
+    ])
+
+    # 1. Start Gazebo Sim with selected world (unpaused with -r)
     gz_sim = ExecuteProcess(
-        cmd=['gz', 'sim', '-r', 'empty.sdf'],
+        cmd=['gz', 'sim', '-r', world_file],
         output='screen'
     )
 
-    # 2. Spawn the UAV Model (delayed 2.0s to allow Gazebo to initialize)
+    # 2. Spawn the UAV Model (2.5s delay to allow Gazebo to initialize)
     spawn_model = TimerAction(
-        period=2.0,
+        period=2.5,
         actions=[
             Node(
                 package='ros_gz_sim',
@@ -73,6 +85,7 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        world_arg,
         gz_sim,
         spawn_model,
         bridge,
