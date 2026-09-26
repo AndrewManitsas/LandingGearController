@@ -11,34 +11,27 @@ find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 
-# Task 2.1: Attitude Estimator Node
+# 1. Attitude Estimator
 add_executable(attitude_estimator src/attitude_estimator.cpp)
-ament_target_dependencies(attitude_estimator
-  rclcpp
-  sensor_msgs
-  geometry_msgs
-  std_msgs
-)
+ament_target_dependencies(attitude_estimator rclcpp sensor_msgs geometry_msgs)
 
-# Task 2.2: Stabilator PID Controller Node
+# 2. Stabilator PID Controller
 add_executable(stabilator_controller src/stabilator_controller.cpp)
-ament_target_dependencies(stabilator_controller
-  rclcpp
-  geometry_msgs
-  std_msgs
-)
+ament_target_dependencies(stabilator_controller rclcpp geometry_msgs std_msgs)
 
-# Task 2.3: Landing Gear Actuator Controller Node
+# 3. Landing Gear Controller
 add_executable(landing_gear_controller src/landing_gear_controller.cpp)
-ament_target_dependencies(landing_gear_controller
-  rclcpp
-  std_msgs
-)
+ament_target_dependencies(landing_gear_controller rclcpp std_msgs)
+
+# 4. Flight Dynamics Node
+add_executable(flight_dynamics_node src/flight_dynamics_node.cpp)
+ament_target_dependencies(flight_dynamics_node rclcpp geometry_msgs std_msgs)
 
 install(TARGETS
   attitude_estimator
   stabilator_controller
   landing_gear_controller
+  flight_dynamics_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

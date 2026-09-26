@@ -1,4 +1,4 @@
-# Actuators (ROS 2 -> Gazebo)
+# Joint Actuation Commands (ROS 2 -> Gazebo)
 - ros_topic_name: "/control/elevator_cmd"
   gz_topic_name: "/model/uav_landing_rig/joint/horizontal_stabilizer_joint/0/cmd_pos"
   ros_type_name: "std_msgs/msg/Float64"
@@ -11,21 +11,26 @@
   gz_type_name: "gz.msgs.Double"
   direction: ROS_TO_GZ
 
-# IMU (Gazebo -> ROS 2)
+# Flight Velocity Command (ROS 2 -> Gazebo)
+- ros_topic_name: "/flight/cmd_vel"
+  gz_topic_name: "/model/uav_landing_rig/cmd_vel"
+  ros_type_name: "geometry_msgs/msg/Twist"
+  gz_type_name: "gz.msgs.Twist"
+  direction: ROS_TO_GZ
+
+# Sensor Streams (Gazebo -> ROS 2)
 - ros_topic_name: "/sensing/imu/data_raw"
   gz_topic_name: "/model/uav_landing_rig/imu"
   ros_type_name: "sensor_msgs/msg/Imu"
   gz_type_name: "gz.msgs.IMU"
   direction: GZ_TO_ROS
 
-# Ventral Sonar
 - ros_topic_name: "/sensing/sonar/scan"
   gz_topic_name: "/model/uav_landing_rig/sonar_down"
   ros_type_name: "sensor_msgs/msg/LaserScan"
   gz_type_name: "gz.msgs.LaserScan"
   direction: GZ_TO_ROS
 
-# ToF Laser Array
 - ros_topic_name: "/sensing/tof/fore"
   gz_topic_name: "/model/uav_landing_rig/tof_1"
   ros_type_name: "sensor_msgs/msg/LaserScan"
@@ -44,7 +49,7 @@
   gz_type_name: "gz.msgs.LaserScan"
   direction: GZ_TO_ROS
 
-# Simulation Clock
+# Simulation Clock Synchronization
 - ros_topic_name: "/clock"
   gz_topic_name: "/clock"
   ros_type_name: "rosgraph_msgs/msg/Clock"
