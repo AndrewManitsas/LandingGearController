@@ -27,11 +27,16 @@ ament_target_dependencies(landing_gear_controller rclcpp std_msgs)
 add_executable(flight_dynamics_node src/flight_dynamics_node.cpp)
 ament_target_dependencies(flight_dynamics_node rclcpp geometry_msgs std_msgs)
 
+# 5. Flight Supervisor Node
+add_executable(flight_supervisor src/flight_supervisor.cpp)
+ament_target_dependencies(flight_supervisor rclcpp geometry_msgs std_msgs)
+
 install(TARGETS
   attitude_estimator
   stabilator_controller
   landing_gear_controller
   flight_dynamics_node
+  flight_supervisor
   DESTINATION lib/${PROJECT_NAME}
 )
 
