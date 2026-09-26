@@ -1,3 +1,16 @@
+# Flight Rail Gantry Commands (ROS 2 -> Gazebo)
+- ros_topic_name: "/flight/x_cmd"
+  gz_topic_name: "/model/uav_landing_rig/joint/flight_x_joint/0/cmd_pos"
+  ros_type_name: "std_msgs/msg/Float64"
+  gz_type_name: "gz.msgs.Double"
+  direction: ROS_TO_GZ
+
+- ros_topic_name: "/flight/z_cmd"
+  gz_topic_name: "/model/uav_landing_rig/joint/flight_z_joint/0/cmd_pos"
+  ros_type_name: "std_msgs/msg/Float64"
+  gz_type_name: "gz.msgs.Double"
+  direction: ROS_TO_GZ
+
 # Joint Actuation Commands (ROS 2 -> Gazebo)
 - ros_topic_name: "/control/elevator_cmd"
   gz_topic_name: "/model/uav_landing_rig/joint/horizontal_stabilizer_joint/0/cmd_pos"
@@ -9,13 +22,6 @@
   gz_topic_name: "/model/uav_landing_rig/joint/landing_gear_joint/0/cmd_pos"
   ros_type_name: "std_msgs/msg/Float64"
   gz_type_name: "gz.msgs.Double"
-  direction: ROS_TO_GZ
-
-# Flight Velocity Command (ROS 2 -> Gazebo)
-- ros_topic_name: "/flight/cmd_vel"
-  gz_topic_name: "/model/uav_landing_rig/cmd_vel"
-  ros_type_name: "geometry_msgs/msg/Twist"
-  gz_type_name: "gz.msgs.Twist"
   direction: ROS_TO_GZ
 
 # Sensor Streams (Gazebo -> ROS 2)
