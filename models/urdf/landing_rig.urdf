@@ -307,10 +307,11 @@
         </plugin>
     </gazebo>
 
-    <!-- Gazebo Harmonic Velocity Control System -->
+    <!-- Gazebo Harmonic Velocity Control System -->  
     <gazebo>
         <plugin filename="gz-sim-velocity-control-system" name="gz::sim::systems::VelocityControl">
         <link_name>base_link</link_name>
+            <topic>/model/uav_landing_rig/cmd_vel</topic>
         </plugin>
     </gazebo>
 </robot>

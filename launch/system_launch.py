@@ -12,8 +12,8 @@ def generate_launch_description():
 
     world_arg = DeclareLaunchArgument(
         'world',
-        default_value='alpha',
-        description='Simulation testbed world: alpha, beta, or gamma'
+        default_value='approach',
+        description='Simulation testbed world: alpha, beta, gamma, or approach'
     )
 
     gui_arg = DeclareLaunchArgument(
@@ -22,45 +22,63 @@ def generate_launch_description():
         description='Launch Gazebo GUI (true) or run headless server (false)'
     )
 
+    flight_arg = DeclareLaunchArgument(
+        'flight',
+        default_value='true',
+        description='Enable active forward flight dynamics and supervisor FSM'
+    )
+
     world_choice = LaunchConfiguration('world')
     gui_choice = LaunchConfiguration('gui')
+    flight_choice = LaunchConfiguration('flight')
 
     world_file = PythonExpression([
         f"'{ws_dir}/worlds/testbed_' + '", world_choice, "'.strip() + '.sdf'"
     ])
 
-    # 1a. Gazebo Sim with GUI (gui:=true)
+    world_name_str = PythonExpression([
+        f"'testbed_' + '", world_choice, "'.strip()"
+    ])
+
+    spawn_z = PythonExpression([
+        "'1.6' if '", world_choice, "'.strip() == 'approach' else '1.0'"
+    ])
+
+    # 1a. Gazebo Sim with GUI
     gz_sim_gui = ExecuteProcess(
         cmd=['gz', 'sim', '-r', world_file],
         output='screen',
         condition=IfCondition(gui_choice)
     )
 
-    # 1b. Gazebo Sim Headless Server (gui:=false)
+    # 1b. Gazebo Sim Headless Server
     gz_sim_server = ExecuteProcess(
         cmd=['gz', 'sim', '-r', '-s', world_file],
         output='screen',
         condition=UnlessCondition(gui_choice)
     )
 
-    # 2. Spawn UAV Model after Gazebo initialization (2.5s)
+    # 2. Spawn UAV Rig (Waits 4.0s for Gazebo to fully advertise /world/<name>/create)
     spawn_model = TimerAction(
-        period=2.5,
+        period=4.0,
         actions=[
             Node(
                 package='ros_gz_sim',
                 executable='create',
                 arguments=[
                     '-file', urdf_path,
-                    '-name', 'landing_rig',
-                    '-z', '1.0'
+                    '-name', 'uav_landing_rig',
+                    '-world', world_name_str,
+                    '-x', '0.0',
+                    '-y', '0.0',
+                    '-z', spawn_z
                 ],
                 output='screen'
             )
         ]
     )
 
-    # 3. ROS-Gazebo Bridge
+    # 3. Parameter Bridge
     bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
@@ -68,7 +86,7 @@ def generate_launch_description():
         output='screen'
     )
 
-    # 4. Domain Nodes
+    # 4. Estimation & Control Domain
     attitude_estimator = Node(
         package='control_domain',
         executable='attitude_estimator',
@@ -90,6 +108,24 @@ def generate_launch_description():
         output='screen'
     )
 
+    # 5. Dynamic Flight & Autoland Supervisor Nodes
+    flight_dynamics_node = Node(
+        package='control_domain',
+        executable='flight_dynamics_node',
+        parameters=[{'use_sim_time': True}],
+        output='screen',
+        condition=IfCondition(flight_choice)
+    )
+
+    flight_supervisor = Node(
+        package='control_domain',
+        executable='flight_supervisor',
+        parameters=[{'use_sim_time': True}],
+        output='screen',
+        condition=IfCondition(flight_choice)
+    )
+
+    # 6. Sensing Domain
     sensor_processor = Node(
         package='sensing_domain',
         executable='sensor_processor',
@@ -97,6 +133,7 @@ def generate_launch_description():
         output='screen'
     )
 
+    # 7. Intelligence Domain
     terrain_classifier = Node(
         package='intelligence_domain',
         executable='terrain_classifier',
@@ -107,6 +144,7 @@ def generate_launch_description():
     return LaunchDescription([
         world_arg,
         gui_arg,
+        flight_arg,
         gz_sim_gui,
         gz_sim_server,
         spawn_model,
@@ -114,6 +152,8 @@ def generate_launch_description():
         attitude_estimator,
         stabilator_controller,
         landing_gear_controller,
+        flight_dynamics_node,
+        flight_supervisor,
         sensor_processor,
         terrain_classifier
     ])
