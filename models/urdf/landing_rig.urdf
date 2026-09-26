@@ -20,13 +20,13 @@
 		</inertial>
 	</link>
 
-	<!-- Elevator along glideslope (Z axis) -->
+	<!-- Elevator along glideslope (Z axis) directly represents physical AGL -->
 	<joint name="flight_z_joint" type="prismatic">
 		<parent link="flight_x_carriage"/>
 		<child link="base_link"/>
 		<origin xyz="0 0 0" rpy="0 0 0"/>
 		<axis xyz="0 0 1"/>
-		<limit lower="0.0" upper="5.0" effort="500.0" velocity="5.0"/>
+		<limit lower="0.10" upper="3.0" effort="500.0" velocity="5.0"/>
 		<dynamics damping="0.1" friction="0.0"/>
 	</joint>
 
@@ -222,7 +222,7 @@
 			</imu>
 		</sensor>
 
-		<!-- Downward Sonar (Aperture lowered to Z = -0.070m to clear housing) -->
+		<!-- Downward Sonar -->
 		<sensor name="sonar_down" type="gpu_lidar">
 			<pose>0.15 0 -0.070 0 1.5708 0</pose>
 			<always_on>1</always_on>
@@ -238,7 +238,7 @@
 			</ray>
 		</sensor>
 
-		<!-- ToF 1 (Fore): 3x3 optical cone (FOV +-0.04 rad) lowered to Z = -0.070m -->
+		<!-- ToF 1 (Fore) -->
 		<sensor name="tof_1" type="gpu_lidar">
 			<pose>0.195 0 -0.070 0 1.5708 0</pose>
 			<always_on>1</always_on>
@@ -254,7 +254,7 @@
 			</ray>
 		</sensor>
 
-		<!-- ToF 2 (Port): 3x3 optical cone lowered to Z = -0.070m -->
+		<!-- ToF 2 (Port) -->
 		<sensor name="tof_2" type="gpu_lidar">
 			<pose>0.125 0.039 -0.070 0 1.5708 0</pose>
 			<always_on>1</always_on>
@@ -270,7 +270,7 @@
 			</ray>
 		</sensor>
 
-		<!-- ToF 3 (Starboard): 3x3 optical cone lowered to Z = -0.070m -->
+		<!-- ToF 3 (Starboard) -->
 		<sensor name="tof_3" type="gpu_lidar">
 			<pose>0.125 -0.039 -0.070 0 1.5708 0</pose>
 			<always_on>1</always_on>
@@ -302,9 +302,9 @@
 		<plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
 			<joint_name>flight_z_joint</joint_name>
 			<topic>/model/uav_landing_rig/joint/flight_z_joint/0/cmd_pos</topic>
-			<p_gain>350.0</p_gain>
-			<i_gain>2.0</i_gain>
-			<d_gain>30.0</d_gain>
+			<p_gain>400.0</p_gain>
+			<i_gain>10.0</i_gain>
+			<d_gain>40.0</d_gain>
 		</plugin>
 
 		<!-- Horizontal Stabilizer Control -->
