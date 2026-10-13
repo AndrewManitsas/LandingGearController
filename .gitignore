@@ -45,8 +45,12 @@ build/
 install/
 log/
 
-# Python
+# Python interpreter cache
 __pycache__/
+*.py[cod]
+
+# Project-local Python environment
+.venv/
 
 # vscode garbage
 .vscode/
