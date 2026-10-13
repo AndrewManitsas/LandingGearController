@@ -54,7 +54,7 @@ def generate_launch_description():
     )
 
     gz_sim_server = ExecuteProcess(
-        cmd=['gz', 'sim', '-r', '-s', world_file],
+        cmd=['gz', 'sim', '-r', '-s', '--headless-rendering', world_file],
         output='screen',
         condition=UnlessCondition(gui_choice)
     )

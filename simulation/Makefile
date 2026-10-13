@@ -21,11 +21,11 @@ help:
 	  '  make check      Check installed simulation tools' \
 	  '  make build      Build the three ROS packages' \
 	  '  make run        Build and launch approach, GUI and flight enabled' \
-	  '  make alpha      Build and launch a static Alpha demo' \
-	  '  make beta       Build and launch a static Beta demo' \
-	  '  make gamma      Build and launch a static Gamma demo' \
+	  '  make alpha      Build and launch a flying Alpha demo' \
+	  '  make beta       Build and launch a flying Beta demo' \
+	  '  make gamma      Build and launch a flying Gamma demo' \
 	  '  make test       Run offline simulation tests' \
-	  '  make verify     Build and run scenario verification (forceful process cleanup)' \
+	  '  make verify     Build and run scenario verification with launch logs' \
 	  '  make benchmark  Build and run the host inference benchmark' \
 	  '  make clean      Delete ONLY simulation build/, install/ and log/' \
 	  '  make rebuild    Clean, then build again' \
@@ -70,7 +70,7 @@ run: build
 
 # Reuse run so presets follow the same build and environment setup.
 alpha beta gamma:
-	@$(MAKE) --no-print-directory -C "$(SIMULATION_DIR)" run WORLD=$@ FLIGHT=false GUI="$(GUI)"
+	@$(MAKE) --no-print-directory -C "$(SIMULATION_DIR)" run WORLD=$@ FLIGHT="$(FLIGHT)" GUI="$(GUI)"
 
 approach:
 	@$(MAKE) --no-print-directory -C "$(SIMULATION_DIR)" run WORLD=approach FLIGHT=true GUI="$(GUI)"

@@ -26,6 +26,7 @@ make build
 make run
 make alpha
 make beta GUI=false
+make beta FLIGHT=false
 make gamma
 make run WORLD=approach GUI=true FLIGHT=true
 make test
@@ -35,7 +36,7 @@ make clean
 make rebuild
 ```
 
-Build and launch targets source ROS automatically. Run/benchmark/verify perform an incremental build and source this checkout's install environment. Alpha/Beta/Gamma presets use static mode. Run launches approach with flight enabled by default. Exit a running simulation with Ctrl+C before starting another.
+Build and launch targets source ROS automatically. Run/benchmark/verify perform an incremental build and source this checkout's install environment. Alpha/Beta/Gamma presets enable flight by default, matching the manual launch default. Use `make beta FLIGHT=false` for static sensing checks. Run launches approach with flight enabled by default. Exit a running simulation with Ctrl+C before starting another.
 
 Clean deletes only the simulation workspace's `build/`, `install/` and `log/` directories. It preserves source, datasets, presentation and Python environments, and refuses cleanup targets that are symlinks or regular files. Stop active simulation/build jobs before cleaning. Rebuild cleans first and then builds. Offline test and clean require only Python and make. Build and run do not install packages.
 
@@ -55,9 +56,9 @@ From the simulation folder:
 
 ```bash
 ros2 launch launch/system_launch.py world:=approach gui:=true flight:=true
-ros2 launch launch/system_launch.py world:=alpha gui:=true flight:=false
-ros2 launch launch/system_launch.py world:=beta gui:=true flight:=false
-ros2 launch launch/system_launch.py world:=gamma gui:=true flight:=false
+ros2 launch launch/system_launch.py world:=alpha gui:=true flight:=true
+ros2 launch launch/system_launch.py world:=beta gui:=true flight:=true
+ros2 launch launch/system_launch.py world:=gamma gui:=true flight:=true
 ```
 
 Run one scenario at a time. `world` defaults to `approach`, `gui` and `flight` default to `true`. `gui:=false` selects a headless server. `flight:=false` disables the carrier and flight supervisor for static sensing and manual gear checks. `flight:=true` enables the supervisor's arming, descent, flare, touchdown and go-around sequence.
@@ -93,7 +94,7 @@ python3 scripts/verify_system.py
 ros2 run intelligence_domain benchmark_inference
 ```
 
-The path tests run without ROS or Gazebo. The scenario verification requires both and explicitly disables flight so the supervisor does not compete with its manual deployment request. The existing verification script force-terminates Gazebo/ROS processes by name during cleanup. Run it in a dedicated simulation session with no unrelated jobs using those processes.
+The path tests run without ROS or Gazebo. The scenario verification requires both and explicitly disables flight so the supervisor does not compete with its manual deployment request. Verification waits for valid samples from all range sensors and fresh features before evaluating results. It saves each launch log under `log/verification/` and stops only the process group it launched. Stop any separately running simulation before verification to avoid shared-world/topic collisions.
 
 Read [testing and evidence](docs/testing_and_validation.md) for what each check establishes. Host timing is not an embedded-controller benchmark.
 

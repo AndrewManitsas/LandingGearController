@@ -1,6 +1,14 @@
 <sdf version="1.8">
     <!-- Flat, rigid concrete runway (0 deg slope, rigid acoustic-optical reflection, labeled SAFE) -->
     <world name="testbed_alpha">
+        <!-- Explicit systems keep GUI and headless sensor behaviour consistent. -->
+        <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+        <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+        <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+        <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+            <render_engine>ogre2</render_engine>
+        </plugin>
+
         <physics name="1ms" type="ignored">
         <max_step_size>0.001</max_step_size>
         <real_time_factor>1.0</real_time_factor>

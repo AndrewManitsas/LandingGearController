@@ -18,9 +18,9 @@ After building and sourcing the workspace, run:
 python3 scripts/verify_system.py
 ```
 
-The harness launches Alpha, Beta and Gamma headlessly with `flight:=false`, waits five seconds for startup, samples the verdict/abort, sends manual deployment requests and waits 3.5 seconds for the gear trajectory. It checks class 0/1/2, abort false/true/true, and generated gear status above 1.2 rad for Alpha or below 0.05 rad for the unsafe worlds. This does not measure physical gear position, worst-case fault handling, pitch recovery or touchdown quality.
+The harness launches Alpha, Beta and Gamma headlessly with `flight:=false`, waits up to 60 seconds for ten valid scans per range sensor and fresh feature/verdict/abort/gear telemetry, then requires one second of readiness. It sends repeated manual deployment requests and waits up to 15 seconds for the expected verdict, abort and gear outcome to hold for one second. It checks class 0/1/2, abort false/true/true, and generated gear status above 1.2 rad for Alpha or below 0.05 rad for the unsafe worlds. This does not measure physical gear position, worst-case fault handling, pitch recovery or touchdown quality.
 
-The existing cleanup uses forceful process-name termination and may stop unrelated Gazebo/ROS jobs. Use a dedicated simulation session. Its fixed startup wait and lack of process-readiness checks are limitations of this harness.
+Each launch writes diagnostics to `log/verification/<world>.log`. Readiness timeout or early launch exit fails the scenario explicitly, so fallback features cannot make Alpha appear verified. Cleanup signals only the process group that the test launched. Run verification with other simulations stopped to avoid shared Gazebo worlds and ROS topics. The sensor system is explicit in all worlds, and headless launch enables rendering for GPU range sensors.
 
 ## 3. Previously Reported Results
 
@@ -41,3 +41,7 @@ The executable times prediction on three synthetic vectors over one million iter
 The separate bench demonstration exercises IMU attitude, range validity, qualification, manual deployment, retention after readiness loss and explicit stow. The Python monitor has offline tests under `hardware/tools/`. Physical servo motion, terrain classification, sensor-array geometry and aircraft landing remain outside that evidence.
 
 [Simulation setup](../README.md) / [Project overview](../../README.md)
+
+## Current Static Scenario Check
+
+The repaired headless harness has reproduced Alpha SAFE/deployed, Beta UNSAFE_SLOPE/stowed and Gamma UNSAFE_VEGETATION/stowed with valid sensor scans. These checks validate the synthetic terrain interlocks, not the complete flying approach. Flying Makefile presets enable `FLIGHT=true` by default; use `FLIGHT=false` explicitly for static work.
