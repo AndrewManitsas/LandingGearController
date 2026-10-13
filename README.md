@@ -49,6 +49,7 @@ The original three-board plan assigned sensing to Pico 2 W, classification to Pi
 ```text
 LandingGearController/
 |-- simulation/
+|   |-- Makefile            # Setup, launch, tests and cleanup
 |   |-- README.md
 |   |-- config/             # Gazebo / ROS bridge configuration
 |   |-- data/               # Synthetic labelled dataset
@@ -70,7 +71,7 @@ LandingGearController/
 
 ## 5. Getting Started
 
-For simulation, follow [the ROS/Gazebo workflow](simulation/README.md). For the connected Uno, follow [the hardware workflow](hardware/README.md). Keep separate WSL and Windows checkouts of this same repository when using both environments. Python virtual environments and build outputs remain local to each checkout.
+For simulation in WSL / Ubuntu with ROS 2 Jazzy installed, run `cd simulation`, then `make setup` and `make run`. Use `make help` for static demos, checks and generated-folder cleanup. See [the ROS/Gazebo workflow](simulation/README.md) for prerequisites and details. For the connected Uno, follow [the hardware workflow](hardware/README.md). Keep separate WSL and Windows checkouts of this same repository when using both environments. Python virtual environments and build outputs remain local to each checkout.
 
 The hardware demonstration consists of waiting for readiness with a level IMU and stable target, deploying with D, changing distance or tilt to show a warning while gear remains deployed, and stowing with S. The simulation offers broader terrain and approach scenarios with a different abort policy.
 

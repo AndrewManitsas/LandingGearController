@@ -8,26 +8,56 @@ Ubuntu 24.04 / WSL Ubuntu, ROS 2 Jazzy, Gazebo Harmonic, `ros_gz_bridge`, `ros_g
 
 ## 2. Build
 
-Run from the repository root in WSL / Ubuntu:
+Run from the simulation folder in WSL / Ubuntu. Install ROS 2 Jazzy and configure its apt repositories first, then:
+
+```bash
+cd ~/repos/LandingGearController/simulation
+make setup
+```
+
+Setup installs ROS/Gazebo integration, colcon, rosdep and Python training dependencies using apt, initializes rosdep if needed, resolves package dependencies and builds the workspace. It requires sudo and network access. It does not install ROS itself or configure Windows hardware tooling.
+
+For subsequent use:
+
+```bash
+make help
+make check
+make build
+make run
+make alpha
+make beta GUI=false
+make gamma
+make run WORLD=approach GUI=true FLIGHT=true
+make test
+make benchmark
+make verify
+make clean
+make rebuild
+```
+
+Build and launch targets source ROS automatically. Run/benchmark/verify perform an incremental build and source this checkout's install environment. Alpha/Beta/Gamma presets use static mode. Run launches approach with flight enabled by default. Exit a running simulation with Ctrl+C before starting another.
+
+Clean deletes only the simulation workspace's `build/`, `install/` and `log/` directories. It preserves source, datasets, presentation and Python environments, and refuses cleanup targets that are symlinks or regular files. Stop active simulation/build jobs before cleaning. Rebuild cleans first and then builds. Offline test and clean require only Python and make. Build and run do not install packages.
+
+The manual equivalent remains:
 
 ```bash
 source /opt/ros/jazzy/setup.bash
-cd ~/repos/LandingGearController
-colcon build --base-paths simulation/src --symlink-install
+colcon build --base-paths src --symlink-install
 source install/setup.bash
 ```
 
-Build, install and log directories remain at the root in this workflow. Source the ROS environment and this checkout's `install/setup.bash` in every new terminal. Launch resource paths resolve relative to the launch file, so the checkout itself need not be at the example location.
+Generated directories stay inside `simulation/`. From the repository root, use `make -C simulation <target>`. Make targets handle sourcing in their own shell, so they do not modify your terminal environment. For manual ROS commands below, source ROS and `install/setup.bash` in that terminal. Resource paths resolve relative to the launcher, independently of checkout location.
 
 ## 3. Launch and Scenarios
 
-From the repository root:
+From the simulation folder:
 
 ```bash
-ros2 launch simulation/launch/system_launch.py world:=approach gui:=true flight:=true
-ros2 launch simulation/launch/system_launch.py world:=alpha gui:=true flight:=false
-ros2 launch simulation/launch/system_launch.py world:=beta gui:=true flight:=false
-ros2 launch simulation/launch/system_launch.py world:=gamma gui:=true flight:=false
+ros2 launch launch/system_launch.py world:=approach gui:=true flight:=true
+ros2 launch launch/system_launch.py world:=alpha gui:=true flight:=false
+ros2 launch launch/system_launch.py world:=beta gui:=true flight:=false
+ros2 launch launch/system_launch.py world:=gamma gui:=true flight:=false
 ```
 
 Run one scenario at a time. `world` defaults to `approach`, `gui` and `flight` default to `true`. `gui:=false` selects a headless server. `flight:=false` disables the carrier and flight supervisor for static sensing and manual gear checks. `flight:=true` enables the supervisor's arming, descent, flare, touchdown and go-around sequence.
@@ -43,23 +73,23 @@ The gear controller stows on `/intelligence/abort`. The supervisor requests depl
 
 ## 4. Data and Classifier
 
-From the root, use a separate sourced ROS terminal while the matching static scenario runs:
+From the simulation folder, use a separate sourced ROS terminal while the matching static scenario runs:
 
 ```bash
-python3 simulation/scripts/record_dataset.py --help
-python3 simulation/scripts/record_dataset.py --world alpha --samples 500
-python3 simulation/scripts/train_classifier.py
+python3 scripts/record_dataset.py --help
+python3 scripts/record_dataset.py --world alpha --samples 500
+python3 scripts/train_classifier.py
 ```
 
-The recorder appends to `simulation/data/dataset.csv` by default. Select the label matching the running world. Training reads that dataset and overwrites the generated header under `simulation/src/intelligence_domain/include/intelligence_domain/`. It uses a stratified 75/25 split, random seed 42 and a depth limit of four. Rebuild after changing the header. Neither training nor recording is part of ordinary demo startup.
+The recorder appends to `data/dataset.csv` by default. Select the label matching the running world. Training reads that dataset and overwrites the generated header under `src/intelligence_domain/include/intelligence_domain/`. It uses a stratified 75/25 split, random seed 42 and a depth limit of four. Rebuild after changing the header. Neither training nor recording is part of ordinary demo startup.
 
 The legacy CSV column names do not all match the current runtime features. Read [the feature mapping](docs/sensors_and_physics.md) before collecting new data or interpreting the classifier. Historical classification scores should not be assumed to validate a newly generated dataset.
 
 ## 5. Checks
 
 ```bash
-python3 -m unittest discover -s simulation/tests -p 'test_*.py'
-python3 simulation/scripts/verify_system.py
+python3 -m unittest discover -s tests -p 'test_*.py'
+python3 scripts/verify_system.py
 ros2 run intelligence_domain benchmark_inference
 ```
 

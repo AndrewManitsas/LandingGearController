@@ -31,10 +31,10 @@ Target commands published to the control topics must stay within the joint limit
 
 ## 3. Launching the Bridge
 
-Execute the parameter bridge from the repository root:
+Execute the parameter bridge from the simulation folder:
 
 ```bash
-ros2 run ros_gz_bridge parameter_bridge --ros-args -p config_file:=simulation/config/bridge_config.yaml
+ros2 run ros_gz_bridge parameter_bridge --ros-args -p config_file:=config/bridge_config.yaml
 ```
 
 The bridge configuration also includes `/flight/x_cmd`, `/flight/z_cmd` and `/clock`. The first two use Float64 ROS messages and Gazebo Double commands; clock uses rosgraph_msgs/Clock. See [the YAML](bridge_config.yaml) for the complete mapping.

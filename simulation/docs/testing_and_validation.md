@@ -2,10 +2,10 @@
 
 ## 1. Offline Path Checks
 
-From the repository root:
+From the simulation folder:
 
 ```bash
-python3 -m unittest discover -s simulation/tests -p 'test_*.py'
+python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
 These checks exercise relocated resource paths and confirm that the verification harness requests static mode. They do not start Gazebo or validate flight behaviour.
@@ -15,7 +15,7 @@ These checks exercise relocated resource paths and confirm that the verification
 After building and sourcing the workspace, run:
 
 ```bash
-python3 simulation/scripts/verify_system.py
+python3 scripts/verify_system.py
 ```
 
 The harness launches Alpha, Beta and Gamma headlessly with `flight:=false`, waits five seconds for startup, samples the verdict/abort, sends manual deployment requests and waits 3.5 seconds for the gear trajectory. It checks class 0/1/2, abort false/true/true, and generated gear status above 1.2 rad for Alpha or below 0.05 rad for the unsafe worlds. This does not measure physical gear position, worst-case fault handling, pitch recovery or touchdown quality.
