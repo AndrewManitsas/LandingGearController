@@ -210,13 +210,4 @@ The connected bench setup and serial reports have been exercised on hardware. Th
 
 Translational acceleration can distort the gravity estimate, and the simple gyro integration is intended for moderate bench tilts. Numeric IMU validation cannot detect all plausible stale readings. ToF validation uses the raw device status, not the full ST software quality assessment. Hysteresis is not implemented; the one-second qualification delays re-entry into READY.
 
----
-
-## 8. License
-
-This project is licensed under the GNU General Public License v3.0. See [LICENSE](../LICENSE).
-
-
-Run upload and monitor commands from the repository root in a Windows checkout. The folder tree above describes the hardware subtree; LICENSE and the project overview live at the repository root.
-
 [Back to project overview](../README.md)

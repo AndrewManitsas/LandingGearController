@@ -77,3 +77,7 @@ The hardware demonstration consists of waiting for readiness with a level IMU an
 ## 6. Current Limits
 
 The hardware uses one range sensor and virtual actuator commands. It has no terrain-material classifier, physical gear feedback or touchdown detector. Simulation classification scores use synthetic, correlated data and per-world labels. They do not measure performance on real terrain. Both implementations are course prototypes rather than validated aircraft systems.
+
+## 7. License
+
+This project is licensed under the GNU General Public License v3.0. See [LICENSE](/LICENSE).
