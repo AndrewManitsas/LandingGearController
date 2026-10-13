@@ -6,8 +6,10 @@ from sklearn.tree import DecisionTreeClassifier, _tree
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, confusion_matrix
 
-DATASET_PATH = 'data/dataset.csv'
-OUTPUT_HEADER = 'src/intelligence_domain/include/intelligence_domain/model_rules.hpp'
+SIMULATION_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATASET_PATH = os.path.join(SIMULATION_DIR, 'data', 'dataset.csv')
+OUTPUT_HEADER = os.path.join(SIMULATION_DIR, 'src', 'intelligence_domain',
+                             'include', 'intelligence_domain', 'model_rules.hpp')
 
 FEATURE_NAMES = [
     'mean_tof',

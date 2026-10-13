@@ -10,6 +10,9 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from std_msgs.msg import Bool, Float64, Int32
 
+SIMULATION_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LAUNCH_FILE = os.path.join(SIMULATION_DIR, 'launch', 'system_launch.py')
+
 class VerificationEvaluator(Node):
     def __init__(self):
         super().__init__('verification_evaluator')
@@ -66,12 +69,12 @@ def test_scenario(evaluator: VerificationEvaluator, world_name: str,
     evaluator.reset()
 
     cmd = [
-        'ros2', 'launch', 'launch/system_launch.py',
-        f'world:={world_name}', 'gui:=false'
+        'ros2', 'launch', LAUNCH_FILE,
+        f'world:={world_name}', 'gui:=false', 'flight:=false'
     ]
     proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, preexec_fn=os.setsid)
 
-    # 1. Allow 5.0 seconds for Gazebo startup, model spawning (2.5s timer),
+    # 1. Allow 5.0 seconds for Gazebo startup, model spawning (3.5s timer),
     # touchdown settling under gravity, and sensor buffer population.
     print("  Waiting 5.0s for model spawn, touchdown settling, and filter convergence...")
     settle_start = time.time()

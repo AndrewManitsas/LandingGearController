@@ -1,59 +1,49 @@
-# Physics & Sensor Mathematical Modeling
+# Simulation Sensors and Implemented Features
 
-## 1. Attitude Estimation (Complementary Filter)
+This guide describes the current source code. The [original specification](design/original_simulation_specification.md) describes earlier intended algorithms that are not all implemented.
 
-### 1.1 Accelerometer Pitch & Roll Estimation
-On embedded controllers, calculating intermediate squared acceleration values using signed 16-bit integers leads to arithmetic overflow, causing negative root arguments and generating `NaN` output. Values are cast to single-precision floating point to preserve stability:
-$$\theta_{\text{acc}} = \text{atan2}\left(-a_x, \sqrt{a_y^2 + a_z^2}\right)$$
-$$\phi_{\text{acc}} = \text{atan2}\left(a_y, a_z\right)$$
+## 1. Attitude
 
-### 1.2 Rate Gyroscope Integration
-Raw gyroscope angular rates $\vec{\omega} = [\omega_x, \omega_y, \omega_z]^T$ in $\text{rad/s}$ are integrated over sample interval $\Delta t$:
-$$\Delta \theta_{\text{gyro}} = \omega_y \Delta t, \quad \Delta \phi_{\text{gyro}} = \omega_x \Delta t$$
+`attitude_estimator.cpp` computes accelerometer roll with `atan2(ay, az)` and pitch with `atan2(-ax, sqrt(ay*ay + az*az))`. It integrates gyro rates in rad/s and combines them with the gravity estimate using default alpha 0.90. The first valid sample initializes attitude. Non-positive dt or a gap over 0.2 s uses a 0.01 s fallback. `/control/attitude` uses `Vector3Stamped`, with roll in x and pitch in y, in radians.
 
-### 1.3 State Update Formulation
-Fusing gravity reference vectors with integrated angular rates using filtering factor $\alpha = 0.90$:
-$$\theta_k = \alpha (\theta_{k-1} + \omega_y \Delta t) + (1 - \alpha) \theta_{\text{acc}} \quad (\text{Pitch state})$$
-$$\phi_k = \alpha (\phi_{k-1} + \omega_x \Delta t) + (1 - \alpha) \phi_{\text{acc}} \quad (\text{Roll state})$$
+The hardware filter uses degrees and alpha calculated from a 0.50 s time constant and measured dt. Neither estimator establishes yaw or physical aircraft stabilization in the bench prototype.
 
----
+## 2. Range Processing
 
-## 2. Terrain Slope & Surface Normal Extraction
+The ToF callbacks take the minimum finite, in-range sample from each scan. Empty or wholly invalid ToF scans fall back to 0.85 m. The processor retains the most recent value for each sensor without enforcing synchronous arrival or age limits.
 
-The three VL53L0X ToF rangefinders form an equilateral triangle with radial offset $r = 0.06\text{ m}$ on the ventral sensor plate:
-* **Sensor 1 (Fore):** $(r, 0)$
-* **Sensor 2 (Aft-Port):** $(-r/2, r\sqrt{3}/2)$
-* **Sensor 3 (Aft-Starboard):** $(-r/2, -r\sqrt{3}/2)$
+The sonar callback averages valid scan rays and computes their population variance. If no valid ray exists, it retains the previous sonar values. This is variance across a scan, not across time. ToF variance uses the three latest sensor distances with a denominator of three. Both variances have a floor of 0.00001 m². The current processor has no ten-sample temporal buffer.
 
-Using surface contact points $\mathbf{p}_i = [x_i, y_i, -d_{\text{ToF}, i}]^T$, planar span vectors and the surface normal unit vector $\hat{\mathbf{n}}$ are derived via vector cross-product:
-$$\mathbf{u} = \mathbf{p}_2 - \mathbf{p}_1, \quad \mathbf{v} = \mathbf{p}_3 - \mathbf{p}_1$$
-$$\hat{\mathbf{n}} = \frac{\mathbf{u} \times \mathbf{v}}{\Vert{}\mathbf{u} \times \mathbf{v}\Vert{}}$$
+## 3. Slope Approximation
 
-The local ground inclination angle $\beta$ relative to the vertical axis is:
-$$\beta = \arccos\left(\frac{\vert{}\hat{n}_z\vert{}}{\Vert{}\hat{\mathbf{n}}\Vert{}}\right)$$
+The runtime calculates:
 
-Terrain exhibiting $\beta > 0.2618\text{ rad}$ ($15^\circ$) exceeds dynamic rollover limits and triggers an abort.
+```text
+mean_tof = (fore + port + starboard) / 3
+pitch_slope = atan2(fore - (port + starboard) / 2, 0.070)
+roll_slope = atan2(port - starboard, 0.078)
+total_slope = sqrt(pitch_slope² + roll_slope²)
+delta_d = sonar_mean - mean_tof
+```
 
----
+Distances are in metres and slopes in radians. The two baseline constants are the values in the code. Their consistency with the model geometry needs verification. The implementation does not use the proposed three-point cross-product normal or compensate the terrain estimate with filtered IMU attitude. A universal 15-degree rollover threshold is not part of the runtime classifier.
 
-## 3. Acoustic-Optical Texture Signature
+## 4. Runtime Feature Mapping
 
-* **VL53L0X ToF:** Narrow optical beam ($\approx 25^\circ$) that penetrates sparse foliage, returning reflections from inner branches or hard underlying surfaces.
-* **HC-SR04 Sonar:** Wide acoustic conical wavefront ($30^\circ\text{--}40^\circ$) that reflects off outer foliage tips and canopy boundaries.
+CSV/header names remain unchanged for compatibility. Some names describe proposed quantities rather than what the processor now supplies.
 
-$$\bar{d}_{\text{ToF}} = \frac{1}{3} \sum_{i=1}^3 d_{\text{ToF}, i}, \quad \Delta d = \bar{d}_{\text{ToF}} - d_{\text{sonar}}$$
+| Index | Legacy name | Actual runtime quantity | Unit |
+| :--- | :--- | :--- | :--- |
+| 0 | `mean_tof` | Mean of the latest three ToF distances | m |
+| 1 | `spatial_variance` | Population variance of those three distances, with floor | m² |
+| 2 | `delta_d` | Sonar mean minus mean ToF | m |
+| 3 | `delta_d_variance` | Variance of valid sonar rays within one scan, with floor | m² |
+| 4 | `beta_slope` | Total slope approximation | rad |
+| 5 | `omega_norm` | Absolute roll-slope approximation, not IMU angular rate | rad |
+| 6 | `tilt_error` | Total slope approximation again, not filtered attitude error | rad |
 
-* **Solid Concrete / Rigid Runway:** $\Delta d \approx 0\text{ m}$ with temporal stability.
-* **Vegetated Mound / Canopy:** $\Delta d < -0.05\text{ m}$ with elevated temporal dispersion $\sigma^2_{\Delta d}$.
+The processor's wall timer is 20 ms (nominal 50 Hz). The classifier responds to incoming features. The generated tree tests feature 6 against 0.137855 rad and then feature 1 against 0.000783 m². It returns SAFE for low feature 6, otherwise UNSAFE_SLOPE for low feature 1 and UNSAFE_VEGETATION for high feature 1. Class names reflect synthetic dataset labels, not verified surface identification.
 
----
+Negative acoustic-optical differences can occur in the synthetic canopy scenario. No real-material classification or optical penetration experiment has been established by this implementation. Before retraining, record the actual feature definitions alongside the dataset and check that collection, training and inference use the same semantics.
 
-## 4. 7-Dimensional Classification Feature Vector
-
-The `sensing_domain::sensor_processor` maintains a rolling temporal window ($N = 10\text{ samples}$) and publishes the 7D feature vector $\vec{x} \in \mathbb{R}^7$ at 40 Hz:
-
-$$\vec{x} = \begin{bmatrix} \bar{d}_{\text{ToF}} \\ \sigma^2_{\text{spatial}} \\ \Delta d \\ \sigma^2_{\Delta d} \\ \beta \\ \Vert{}\vec{\omega}\Vert{} \\ e_{\text{tilt}} \end{bmatrix} = \begin{bmatrix} \text{Mean optical distance across the 3 ToF sensors} \\ \text{Spatial sample variance across the 3 ToF ground returns} \\ \text{Acoustic-optical range differential } (\bar{d}_{\text{ToF}} - d_{\text{sonar}}) \\ \text{Temporal variance of range differential over 10 samples} \\ \text{Estimated local terrain slope angle derived from normal vector} \\ \text{IMU angular velocity magnitude } \sqrt{\omega_x^2 + \omega_y^2 + \omega_z^2} \\ \text{Tilt error between aircraft frame and local level vector} \end{bmatrix}$$
-
----
-
-[**Back to main README**](../README.md)
+[Simulation setup](../README.md) / [Project overview](../../README.md)

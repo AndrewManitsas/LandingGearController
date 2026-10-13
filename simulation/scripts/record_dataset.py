@@ -10,6 +10,8 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from std_msgs.msg import Float32MultiArray
 
+SIMULATION_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 LABEL_MAP = {
     'alpha': 0,  # SAFE
     'beta': 1,   # UNSAFE_SLOPE
@@ -88,7 +90,7 @@ def main():
                         help="World scenario being sampled (alpha, beta, gamma)")
     parser.add_argument('--samples', type=int, default=500,
                         help="Number of samples to record (default: 500)")
-    parser.add_argument('--output', type=str, default="data/dataset.csv",
+    parser.add_argument('--output', type=str, default=os.path.join(SIMULATION_DIR, 'data', 'dataset.csv'),
                         help="Target output CSV file path")
     args = parser.parse_args()
 

@@ -6,7 +6,8 @@ from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 
 def generate_launch_description():
-    ws_dir = os.path.expanduser('~/repos/LandingGearController')
+    # Resolve resources from this file, independently of checkout location or cwd.
+    ws_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     urdf_path = os.path.join(ws_dir, 'models', 'urdf', 'landing_rig.urdf')
     bridge_config = os.path.join(ws_dir, 'config', 'bridge_config.yaml')
     flight_carrier_script = os.path.join(ws_dir, 'scripts', 'flight_carrier.py')

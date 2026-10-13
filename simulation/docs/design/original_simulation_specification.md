@@ -1,3 +1,5 @@
+> Historical design reference. This document preserves the earlier proposal, including obsolete node names and unimplemented algorithms. For current behaviour, use the [simulation README](../../README.md), [feature definitions](../sensors_and_physics.md) and [implementation comparison](../../../docs/implementation-comparison.md). The current hardware demo is standalone, not HIL.
+
 # Technical Specification & Simulation Architecture: Autonomous UAV Landing Gear System
 
 ## 1. Executive Summary & Project Context

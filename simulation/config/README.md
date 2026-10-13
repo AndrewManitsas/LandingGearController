@@ -10,7 +10,7 @@ This directory contains the runtime configuration for bridging telemetry and act
 | :--- | :--- | :--- | :--- | :--- |
 | **Pitch Stabilator** | `/model/uav_landing_rig/joint/horizontal_stabilizer_joint/0/cmd_pos` | `/control/elevator_cmd` | `std_msgs/msg/Float64` | `ROS_TO_GZ` |
 | **Landing Gear** | `/model/uav_landing_rig/joint/landing_gear_joint/0/cmd_pos` | `/control/gear_cmd` | `std_msgs/msg/Float64` | `ROS_TO_GZ` |
-| **9-DoF IMU** | `/model/uav_landing_rig/imu` | `/sensing/imu/data_raw` | `sensor_msgs/msg/Imu` | `GZ_TO_ROS` |
+| **Simulated IMU** | `/model/uav_landing_rig/imu` | `/sensing/imu/data_raw` | `sensor_msgs/msg/Imu` | `GZ_TO_ROS` |
 | **Ventral Sonar** | `/model/uav_landing_rig/sonar_down` | `/sensing/sonar/scan` | `sensor_msgs/msg/LaserScan` | `GZ_TO_ROS` |
 | **Fore ToF 1** | `/model/uav_landing_rig/tof_1` | `/sensing/tof/fore` | `sensor_msgs/msg/LaserScan` | `GZ_TO_ROS` |
 | **Port ToF 2** | `/model/uav_landing_rig/tof_2` | `/sensing/tof/port` | `sensor_msgs/msg/LaserScan` | `GZ_TO_ROS` |
@@ -34,5 +34,9 @@ Target commands published to the control topics must stay within the joint limit
 Execute the parameter bridge from the repository root:
 
 ```bash
-ros2 run ros_gz_bridge parameter_bridge --ros-args -p config_file:=config/bridge_config.yaml
+ros2 run ros_gz_bridge parameter_bridge --ros-args -p config_file:=simulation/config/bridge_config.yaml
 ```
+
+The bridge configuration also includes `/flight/x_cmd`, `/flight/z_cmd` and `/clock`. The first two use Float64 ROS messages and Gazebo Double commands; clock uses rosgraph_msgs/Clock. See [the YAML](bridge_config.yaml) for the complete mapping.
+
+[Simulation setup](../README.md) / [Project overview](../../README.md)
