@@ -47,11 +47,11 @@
 \title{Terrain-Aware Autonomous Landing Gear Control for UAVs:\\
 Multi-Sensor Fusion, Active Attitude Stabilisation and\\
 Edge-AI Terrain Classification\\[6pt]
-\large A Software-in-the-Loop Proof of Concept}
+\large Simulation and Hardware Bench Prototypes}
 \author{\href{mailto:amanitsb@ece.auth.gr}{Manitsas Andreas} \:\: \href{mailto:mvranaa@ece.auth.gr}{Vrana Maria}}
 \date{Aristotle University of Thessaloniki\\
 Course: UAV01 -- Sensor Systems for UAVs\\[4pt]
-September 2026}
+October 2026}
 
 
 \begin{document}
@@ -78,7 +78,7 @@ Given a UAV in terminal descent, the system must (i) estimate the local terrain 
 The work is organised around the following objectives.
 \begin{enumerate}
   \item A three-domain architecture (sensing, intelligence, control) in which perception interacts with the control loop only through a verdict and a boolean abort flag (\cref{sec:arch}).
-  \item A sensing scheme that derives terrain slope and local roughness from a triangular ToF array and adds an optical-acoustic comparison as a further cue (\cref{sec:hw,sec:geometry,sec:texture,sec:features}).
+  \item A sensing scheme that derives terrain slope and local height variation from a triangular ToF array and adds an optical-acoustic comparison as a further cue (\cref{sec:hw,sec:geometry,sec:texture,sec:features}).
   \item A discrete complementary filter and an anti-windup PID loop for attitude estimation and pitch stabilisation, with an analysis of their dynamic and noise properties (\cref{sec:attitude,sec:pid}).
   \item A learned terrain classifier, a depth-limited decision tree compiled into allocation-free C++ (\cref{sec:classifier}).
   \item A safety interlock with a rate-limited gear trajectory in which the abort flag has priority over the deploy request (\cref{sec:gear}), and an approach supervisor that sequences a simulated descent (\cref{sec:supervisor}).
@@ -96,7 +96,7 @@ The source code of both prototypes is available in the project repository~\cite{
 The system follows a decoupled \emph{three-domain} model. Each domain has a single responsibility, a nominal update rate and a narrow, explicit interface (\cref{fig:arch}). The separation is inspired by the partitioning ideas of integrated modular avionics (e.g.\ ARINC~653~\cite{arinc653}); it is an architectural decoupling by message passing, and no partition scheduling or worst-case execution-time analysis is claimed.
  
 \begin{itemize}
-  \item The \textbf{sensing domain} acquires the ToF and sonar ranges, derives the terrain slope and roughness features and publishes a seven-element feature vector at a nominal 50\,Hz.
+  \item The \textbf{sensing domain} acquires the ToF and sonar ranges, derives the terrain slope and range-variance features and publishes a seven-element feature vector at a nominal 50\,Hz.
   \item The \textbf{intelligence domain} evaluates a compiled classifier on every feature vector and publishes a discrete verdict together with a boolean abort flag.
   \item The \textbf{control domain} runs the attitude estimator and the pitch stabiliser at the 100\,Hz IMU rate, the gear controller at 50\,Hz, and the approach supervisor at a nominal 50\,Hz.
 \end{itemize}
@@ -382,7 +382,7 @@ which measures the relief of the surface across the acoustic cone at a single in
 %--------------------------------------------------------------
 \subsection{Feature extraction}\label{sec:features}
 %--------------------------------------------------------------
-\paragraph{Spatial variance of the ToF ranges.} The roughness measure is the population variance of the three ToF ranges,
+\paragraph{Spatial variance of the ToF ranges.} The local height-variation measure is the population variance of the three ToF ranges,
 \begin{equation}
 \sigma^2_{\mathrm{sp}}=\frac13\sum_{i\in\{f,p,s\}}\bigl(d_i-\bar d_{\mathrm{ToF}}\bigr)^2,\qquad\sigma^2_{\mathrm{sp}}\ge10^{-5}\ \mathrm{m^2}.
 \label{eq:spvar}
@@ -392,7 +392,7 @@ For a plane \eqref{eq:plane} the range deviations are $-g_x(x_i-\bar x)-g_y(y_i-
 \sigma^2_{\mathrm{sp}}=1.089\times10^{-3}\,g_x^2+1.014\times10^{-3}\,g_y^2\ \ \mathrm{m^2}.
 \label{eq:spmodel}
 \end{equation}
-On a planar patch the roughness measure is thus a function of the same gradients as the slope, and it departs from this relation only when the ranges are not coplanar, which is the case it is meant to detect. For the Beta ramp the apparent slope of $0.348$\,rad gives $g_x=\tan0.348=0.363$ and a predicted variance of $1.4\times10^{-4}$\,m$^2$, in agreement with the measured $1.43\times10^{-4}$\,m$^2$ (\cref{tab:featvals}).
+Under the level-plate and vertical-beam assumptions, three range-derived points at non-collinear sensor positions always define a plane. The gradients inferred from those three values therefore satisfy \eqref{eq:spmodel} algebraically, even when the underlying surface is curved or contains a step. This variance measures local height variation and does not independently establish roughness or non-planarity. Detecting departures from a fitted plane requires redundant spatial measurements, for example at least four independent points, or additional scans with known geometry. For the Beta ramp the apparent slope of $0.348$\,rad gives $g_x=\tan0.348=0.363$ and a variance of $1.4\times10^{-4}$\,m$^2$, consistent with the measured $1.43\times10^{-4}$\,m$^2$ (\cref{tab:featvals}). This agreement is a consistency check on the calculation rather than independent evidence of surface planarity.
  
 \paragraph{Feature vector.} The node publishes the vector of \cref{tab:features} on a 20\,ms timer (nominal 50\,Hz) and the altitude $\bar d_{\mathrm{ToF}}$ on a separate topic. The column names of the recorded dataset (\cref{sec:classifier}) predate the current code, and their meaning differs for three entries: the fourth feature is a variance within one sonar scan rather than a temporal variance of $\Delta d$, the sixth is the magnitude of the roll slope and not the gyroscope norm, and the seventh repeats the total slope and is not a filtered attitude error. \Cref{tab:features} lists what the runtime computes.
  
@@ -443,9 +443,9 @@ On a planar patch the roughness measure is thus a function of the same gradients
 \toprule
 \textbf{Label} & \textbf{Testbed} & \textbf{Terrain} & \textbf{Intended signature}\\
 \midrule
-0 \textsc{safe} & Alpha & Flat ground plane & Near-zero slope and roughness\\
-1 \textsc{unsafe\_slope} & Beta & $20^\circ$ inclined ramp and a stepped curb block & Large slope, small roughness on the planar ramp\\
-2 \textsc{unsafe\_vegetation} & Gamma & Three box-shaped mounds (0.08 to 0.14\,m high) and a central solid cylinder (0.18\,m radius, 0.16\,m high) & Large slope and roughness within the sensor patch\\
+0 \textsc{safe} & Alpha & Flat ground plane & Near-zero slope and range variance\\
+1 \textsc{unsafe\_slope} & Beta & $20^\circ$ inclined ramp and a stepped curb block & Large slope, small range variance on the planar ramp\\
+\shortstack[l]{2 \textsc{unsafe}\\\textsc{vegetation}} & Gamma & Three box-shaped mounds (0.08 to 0.14\,m high) and a central solid cylinder (0.18\,m radius, 0.16\,m high) & Large slope and range variance within the sensor patch\\
 \bottomrule
 \end{tabular}
 \caption{Class labels, the testbed that produces each class and the intended signature.}
@@ -516,7 +516,7 @@ The procedure recurses on $S_L$ and $S_R$ until a node is pure or the maximum de
 \textbf{Parameter} & \textbf{Value}\\
 \midrule
 Algorithm & CART classification tree (\code{DecisionTreeClassifier})\\
-Inputs & 7 features (\cref{tab:features}), single precision at inference\\
+Inputs & 7 recorded feature columns (\cref{tab:dataset}); current runtime definitions differ (\cref{tab:features}); single precision at inference\\
 Classes & 3 (\textsc{safe}, \textsc{unsafe\_slope}, \textsc{unsafe\_vegetation})\\
 Samples & 1\,500 (1\,125 training, 375 test)\\
 Train/test split & 75\,\%/25\,\%, stratified by class, random seed 42\\
@@ -676,17 +676,17 @@ For a closed-loop approach scenario the simulation adds a flight supervisor that
 \draw[arr] (p.south) -- node[left,font=\scriptsize,pos=0.5,align=right]{abort,\\$h\le0.50$\,m} (g.west);
 \draw[arr] (f.south) -- node[right,font=\scriptsize,pos=0.5]{abort} (g.east);
 \end{tikzpicture}
-\caption{States of the approach supervisor. The go-around state has no exit transition in the implementation.}
+\caption{States of the approach supervisor. The arming variable $t$ is a nominal callback-count timer, not elapsed simulation time. The go-around state has no exit transition in the implementation.}
 \label{fig:flightfsm}
 \end{figure}
 
 \noindent
-In \textsc{arming} the pitch setpoint is $0$ and the gear is stowed. The machine arms only after 4.5\,s of simulated time have elapsed (spawn settling) and the vehicle is confirmed airborne ($h>0.70$\,m). In \textsc{approach descent} the setpoint is a shallow descent attitude and the gear stays stowed above the decision height $H_{\mathrm{DH}}=0.50$\,m. At or below the decision height an abort leads immediately to a go-around, whereas a clear abort flag issues the deploy request and the approach continues; at the flare height the machine enters \textsc{flare} with a small nose-up setpoint. An abort during the flare also leads to a go-around. At the touchdown height the machine enters \textsc{touchdown}, the setpoint returns to zero, the gear remains deployed and the touchdown flag stops the motion. In \textsc{go-around} the setpoint becomes a climb attitude and the gear is stowed. The interlock of \cref{sec:gear} remains active in parallel: the gear controller forces the stowed angle whenever the abort flag is set.
+In \textsc{arming} the pitch setpoint is $0$ and the gear is stowed. The machine arms only when its nominal callback-count timer exceeds 4.5\,s and the vehicle is confirmed airborne ($h>0.70$\,m). The implementation uses a wall timer and increments this counter by 0.02\,s on each callback, rather than measuring elapsed simulation time. Callback delays, slow simulation or a paused simulation can therefore make it diverge from the simulation clock. In \textsc{approach descent} the setpoint is a shallow descent attitude and the gear stays stowed above the decision height $H_{\mathrm{DH}}=0.50$\,m. At or below the decision height an abort leads immediately to a go-around, whereas a clear abort flag issues the deploy request and the approach continues; at the flare height the machine enters \textsc{flare} with a small nose-up setpoint. An abort during the flare also leads to a go-around. At the touchdown height the machine enters \textsc{touchdown}, the setpoint returns to zero, the gear remains deployed and the touchdown flag stops the motion. In \textsc{go-around} the setpoint becomes a climb attitude and the gear is stowed. The interlock of \cref{sec:gear} remains active in parallel: the gear controller forces the stowed angle whenever the abort flag is set.
  
 \begin{table}[ht]
 \centering
 \small
-\begin{tabular}{@{}L{5.6cm} l L{5.2cm}@{}}
+\begin{tabular}{@{}L{5.0cm} L{4.8cm} L{5.0cm}@{}}
 \toprule
 \textbf{Parameter} & \textbf{Value} & \textbf{Role}\\
 \midrule
@@ -696,7 +696,7 @@ Climb pitch setpoint & $+0.200$\,rad & \textsc{go-around}\\
 Decision height $H_{\mathrm{DH}}$ & 0.50\,m & Abort check and gear deployment\\
 Flare height & 0.26\,m & Start of \textsc{flare}\\
 Touchdown height & 0.16\,m & Start of \textsc{touchdown}\\
-Arming conditions & $t>4.5$\,s, $h>0.70$\,m & Leaves \textsc{arming}\\
+Arming conditions & $t>4.5$\,s (nominal callback counter), $h>0.70$\,m & Leaves \textsc{arming}\\
 \bottomrule
 \end{tabular}
 \caption{Parameters of the approach supervisor (all except the arming conditions are ROS~2 parameters).}
@@ -1024,7 +1024,7 @@ Result & passed & passed & passed\\
 \end{table}
 
 \noindent
-The live feature vectors support three observations. First, the Alpha values sit at the floors of the computation (variance $10^{-5}$\,m$^2$, slope about $10^{-6}$\,rad), far below the first threshold. Second, the Beta slope of 0.348\,rad is the $20^\circ$ inclination of the ramp ($0.349$\,rad) to within $10^{-3}$\,rad, which confirms the slope estimate \eqref{eq:slope} and the baseline constants on a plane, and its variance agrees with \eqref{eq:spmodel} as shown in \cref{sec:features}. Third, the Gamma slope of 0.852\,rad ($48.8^\circ$) is a large apparent slope with a variance of $1.42\times10^{-3}$\,m$^2$, which again equals the planar prediction $1.089\times10^{-3}\tan^2(0.852)$. The three runs thus fall in the three regions defined by the two thresholds. They do so with the live features, whose definitions differ from those of the training columns (\cref{sec:classifier}); the verdicts are correct because the thresholds lie in the large gaps between the clusters, not because the tree was validated on the live features.
+The live feature vectors support three observations. First, the Alpha values sit at the floors of the computation (variance $10^{-5}$\,m$^2$, slope about $10^{-6}$\,rad), far below the first threshold. Second, the Beta slope of 0.348\,rad is the $20^\circ$ inclination of the ramp ($0.349$\,rad) to within $10^{-3}$\,rad, which confirms the slope estimate \eqref{eq:slope} and the baseline constants on a plane, and its variance agrees with \eqref{eq:spmodel} as shown in \cref{sec:features}. Third, the Gamma slope of 0.852\,rad ($48.8^\circ$) is a large apparent slope with a variance of $1.42\times10^{-3}$\,m$^2$. Because its roll-slope component is nearly zero, this variance also agrees with $1.089\times10^{-3}\tan^2(0.852)$. That agreement follows algebraically from the same three range values used to calculate slope and variance; it does not establish that the underlying mounds and canopy form a planar surface. The three runs thus fall in the three regions defined by the two thresholds. They do so with the live features, whose definitions differ from those of the training columns (\cref{sec:classifier}); the verdicts are correct because the thresholds lie in the large gaps between the clusters, not because the tree was validated on the live features.
  
 \subsection{Acceptance criteria and results}
 The acceptance criteria and the evidence available are summarised in \cref{tab:accept}.
@@ -1039,11 +1039,11 @@ The acceptance criteria and the evidence available are summarised in \cref{tab:a
 False-safe rate & 0\,\% & 0 of 250 unsafe test samples classified safe (\cref{tab:confusion}); Beta and Gamma produce the unsafe verdict in the live run & Met on synthetic data\\
 Safe-terrain recall & $\ge98\,\%$ & $125/125$ on the test set; Alpha is classified safe in the live run & Met on synthetic data\\
 Interlock actuation & Gear at 0\,rad on abort & Generated gear status 0 on Beta and Gamma, 1.5708\,rad on Alpha & Met (command level)\\
-Inference latency & $<1\,\mu$s & Mean 21.98\,ns, 99th percentile 102\,ns on a host (\cref{tab:latency}) & Met on host\\
+Inference latency & $<1\,\mu$s & Host mean 21.98\,ns, P99 102\,ns, maximum 78.418\,$\mu$s (\cref{tab:latency}) & Mean/P99 only; no worst-case bound\\
 Pitch stability & Dynamic error $\le3^\circ$ & Not evaluated here; the airframe is not free to pitch & Not shown\\
 \bottomrule
 \end{tabular}
-\caption{Acceptance criteria and the evidence in this report.}
+\caption{Acceptance criteria and the evidence in this report. The latency target is satisfied by the measured mean and P99 only; the observed maximum exceeds it, and no worst-case bound is demonstrated.}
 \label{tab:accept}
 \end{table}
  
@@ -1051,7 +1051,7 @@ Pitch stability & Dynamic error $\le3^\circ$ & Not evaluated here; the airframe 
 Offline unit tests cover the resolution of resource paths and confirm that the verification harness requests the static mode. They do not start Gazebo. The hardware tools have separate offline tests with a mocked serial port (\cref{sec:bench}).
  
 \subsection{Inference latency}
-The compiled classifier was benchmarked over $10^6$ iterations on three synthetic feature vectors using a high-resolution clock on a host computer (\cref{tab:latency}, \cref{fig:latency}). Two features of the result need interpretation. The minimum and median of 0\,ns and the values of 101 and 102\,ns at the 95th and 99th percentiles indicate that the clock advances in steps of about 100\,ns, so that most evaluations, which take far less than one step, are recorded as 0 or as one step, and the mean of 21.98\,ns is an average over these quantised readings. The maximum of 78\,418\,ns is a single outlier consistent with host scheduling. The reported rate of more than $4.5\times10^{7}$ evaluations per second is an extrapolation from the mean. The benchmark does not include the ROS pipeline, servo response or a microcontroller, and it gives no worst-case execution time; it indicates only that the classifier is negligible against the 20\,ms feature period.
+The compiled classifier was benchmarked over $10^6$ iterations on three synthetic feature vectors using a high-resolution clock on a host computer (\cref{tab:latency}, \cref{fig:latency}). Two features of the result need interpretation. The minimum and median of 0\,ns and the values of 101 and 102\,ns at the 95th and 99th percentiles indicate that the clock advances in steps of about 100\,ns, so that most evaluations, which take far less than one step, are recorded as 0 or as one step, and the mean of 21.98\,ns is an average over these quantised readings. The maximum of 78\,418\,ns ($78.418\,\mu$s) is a single outlier consistent with host scheduling and exceeds the $1\,\mu$s target. Only the measured mean and P99 satisfy that target; they do not establish a per-evaluation upper bound. The reported rate of more than $4.5\times10^{7}$ evaluations per second is an extrapolation from the mean. The benchmark does not include the ROS pipeline, servo response or a microcontroller, and it gives no worst-case execution time; it indicates only that the classifier is negligible against the 20\,ms feature period.
  
 \begin{table}[ht]
 \centering
@@ -1097,7 +1097,7 @@ Latency (ns) & 0 & 21.98 & 0 & 101 & 102 & 78\,418\\
 %==============================================================
 \section{Conclusion}\label{sec:conclusion}
 %==============================================================
-We presented a landing gear assistance system that judges whether the terrain below a descending UAV is suitable for landing and gates gear deployment accordingly. The simulation combines a three-domain architecture, a complementary-filter attitude estimator, an anti-windup PID pitch stabiliser, a slope estimate from the range differences of a triangular ToF array, a roughness measure and an optical-acoustic comparison, and a decision tree of two decision nodes that is compiled into allocation-free C++. A rate-limited gear controller ensures that an unsafe verdict dominates the deploy request. In three static worlds the verdict, abort flag and gear status were as expected, the measured ramp slope of 0.348\,rad matched the geometry, and the classifier scored 375 of 375 on a held-out split, a result explained by tight clusters and midpoint thresholds and not a measure of performance on real terrain. The host benchmark gave a mean inference time of 21.98\,ns with a clock resolution of about 100\,ns. A bench prototype on an Arduino Uno confirmed that attitude estimation, a virtual stabiliser command and rule-based readiness checks operate on real IMU and ToF data with the servos disconnected. Retraining on the current features, validation on noisy and mixed terrain, and hardware-in-the-loop tests are the next steps.
+We presented a landing gear assistance system that judges whether the terrain below a descending UAV is suitable for landing and gates gear deployment accordingly. The simulation combines a three-domain architecture, a complementary-filter attitude estimator, an anti-windup PID pitch stabiliser, a slope estimate from the range differences of a triangular ToF array, a local height-variation measure and an optical-acoustic comparison, and a decision tree of two decision nodes that is compiled into allocation-free C++. A rate-limited gear controller ensures that an unsafe verdict dominates the deploy request. In three static worlds the verdict, abort flag and gear status were as expected, the measured ramp slope of 0.348\,rad matched the geometry, and the classifier scored 375 of 375 on a held-out split, a result explained by tight clusters and midpoint thresholds and not a measure of performance on real terrain. The host benchmark gave a mean inference time of 21.98\,ns with a clock resolution of about 100\,ns. A bench prototype on an Arduino Uno confirmed that attitude estimation, a virtual stabiliser command and rule-based readiness checks operate on real IMU and ToF data with the servos disconnected. Retraining on the current features, validation on noisy and mixed terrain, and hardware-in-the-loop tests are the next steps.
  
 %==============================================================
 \begin{thebibliography}{99}
@@ -1108,10 +1108,10 @@ We presented a landing gear assistance system that judges whether the terrain be
 \bibitem{astrom} K.~J.~{\AA}str{\"o}m and R.~M.~Murray, \emph{Feedback Systems: An Introduction for Scientists and Engineers}, Princeton University Press, 2008.
 \bibitem{cart} L.~Breiman, J.~H.~Friedman, R.~A.~Olshen and C.~J.~Stone, \emph{Classification and Regression Trees}, Wadsworth, 1984.
 \bibitem{sklearn} F.~Pedregosa \emph{et al.}, ``Scikit-learn: Machine learning in Python,'' \emph{Journal of Machine Learning Research}, vol.~12, pp.~2825-2830, 2011.
-\bibitem{vl53} STMicroelectronics, \emph{VL53L0X time-of-flight ranging sensor}, datasheet.
-\bibitem{mpu6500} InvenSense, \emph{MPU-6500 Product Specification}.
-\bibitem{fastimu} \emph{FastIMU}, Arduino library for inertial measurement units, distributed through the Arduino Library Manager.
-\bibitem{pololu} Pololu Corporation, \emph{VL53L0X library for Arduino}, version 1.3.1.
+\bibitem{vl53} STMicroelectronics, \emph{VL53L0X time-of-flight ranging sensor}, datasheet, \url{https://www.st.com/resource/en/datasheet/vl53l0x.pdf}.
+\bibitem{mpu6500} InvenSense, \emph{MPU-6500 Product Specification}, available from the manufacturer at \url{https://www.invensense.tdk.com/en-us/products/inertial-sensors/mpu-6500}.
+\bibitem{fastimu} LiquidCGS, \emph{FastIMU}, Arduino library for inertial measurement units, version 1.3.0 used in the bench build, \url{https://github.com/LiquidCGS/FastIMU}.
+\bibitem{pololu} Pololu Corporation, \emph{VL53L0X library for Arduino}, version 1.3.1, \url{https://github.com/pololu/vl53l0x-arduino}.
 \bibitem{hcsr04} \emph{HC-SR04 ultrasonic ranging module}, manufacturer datasheet.
 \bibitem{mpu} InvenSense, \emph{MPU-9250 Product Specification}.
 \bibitem{rp2350} Raspberry Pi Ltd, \emph{Raspberry Pi Pico 2 W and RP2350 datasheet}.
